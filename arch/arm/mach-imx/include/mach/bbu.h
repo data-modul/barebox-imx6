@@ -93,4 +93,13 @@ static inline int imx_bbu_external_nand_register_handler(const char *name, char 
 }
 #endif
 
+#if defined(CONFIG_DMO_SWU)
+int imx6_bbu_register_dmo_swu_handlers(void);
+#else
+static inline int imx6_bbu_register_dmo_swu_handlers(void)
+{
+	return -ENOSYS;
+}
+#endif
+
 #endif

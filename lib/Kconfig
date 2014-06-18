@@ -50,6 +50,9 @@ config LIBMTD
 config STMP_DEVICE
 	bool
 
+config DMO_SWU
+	bool "include DMO softwae update"
+
 source lib/gui/Kconfig
 
 source lib/bootstrap/Kconfig
