@@ -24,6 +24,19 @@
 #include <bbu.h>
 #include <fs.h>
 
+static int skip_image_load(const char *handler_name)
+{
+	if (handler_name == NULL)
+		return 1;
+
+	if (!strncmp(handler_name,"blkdev", 6))
+		return 1;
+	if (!strncmp(handler_name,"file", 4))
+		return 1;
+
+	return 0;
+}
+
 static int do_barebox_update(int argc, char *argv[])
 {
 	int opt, ret, repair = 0;
@@ -59,9 +72,12 @@ static int do_barebox_update(int argc, char *argv[])
 	if (argc - optind > 0) {
 		data.imagefile = argv[optind];
 
-		data.image = read_file(data.imagefile, &data.len);
-		if (!data.image)
-			return -errno;
+		/* OS updates are too big to fit in memory */
+		if (!skip_image_load(data.handler_name)) {
+			data.image = read_file(data.imagefile, &data.len);
+			if (!data.image)
+				return -errno;
+		}
 	} else {
 		if (!repair)
 			return COMMAND_ERROR_USAGE;
