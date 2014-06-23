@@ -92,7 +92,7 @@ static int imx6_bbu_hfile_status(const char *ifn)
 	unsigned char hashfile[PATH_MAX];
 	struct stat st;
 	int ret;
-	
+
 	if (!ifn)
 		return -1;
 
@@ -171,7 +171,7 @@ static int imx6_bbu_check_img_hash(const char *ifn, const char *ofn)
 	if (!d) {
 		return -1;
 	}
-	
+
 	snprintf(hashfile, sizeof(hashfile)-1, "%s.md5sum", ifn);
 	fd = open(hashfile, O_RDONLY);
 	pr_info("hash file: %s\n", hashfile);
@@ -181,7 +181,7 @@ static int imx6_bbu_check_img_hash(const char *ifn, const char *ofn)
 
 	ret = read(fd, hash, HASH_SZ);
 	close(fd);
-	
+
 	if (ret != HASH_SZ) {
 		return -1;
 	}
@@ -191,6 +191,29 @@ static int imx6_bbu_check_img_hash(const char *ifn, const char *ofn)
 	ret = imx6_bbu_check_hash(ifn, ofn, hash);
 
 	return ret;
+}
+
+static int imx6_bbu_check_limits(const char *ifn, const char *ofn)
+{
+	struct stat si, so;
+
+	if (!ifn || !ofn)
+		return -1;
+
+	pr_debug("ifn: %s ofn: %s\n", ifn, ofn);
+
+	if (stat(ifn, &si))
+		return -1;
+
+	if (stat(ofn, &so))
+		return -1;
+
+	pr_debug("si: %lli so: %lli\n", si.st_size, so.st_size);
+
+	if (so.st_size < si.st_size)
+		return -1;
+
+	return 0;
 }
 
 /*
@@ -212,6 +235,11 @@ static int imx6_bbu_blk_dev_handler(struct bbu_handler *handler, struct bbu_data
 {
 	int ret, verbose;
 
+	if (imx6_bbu_check_limits(data->imagefile, data->devicefile)) {
+		pr_err("ERROR: Partition too small.\n");
+		return -1;
+	}
+
 	pr_info("Running signature check.\n");
 	ret = imx6_bbu_check_img(data->imagefile, data->imagefile);
 	if (ret != 0) {
@@ -228,7 +256,7 @@ static int imx6_bbu_blk_dev_handler(struct bbu_handler *handler, struct bbu_data
 	if (!ret && imx6_bbu_check_img(data->imagefile, data->devicefile)) {
 		ret = -1;
 	}
-	pr_debug("update status: %d\n", ret);
+	pr_info("update status: %d\n", ret);
 
 	return ret;
 }
@@ -238,7 +266,19 @@ static int imx6_bbu_blk_dev_handler(struct bbu_handler *handler, struct bbu_data
 */
 static int imx6_bbu_file_handler(struct bbu_handler *handler, struct bbu_data *data)
 {
-	int ret = 0, verbose;
+	int ret, verbose;
+
+	if (imx6_bbu_check_limits(data->imagefile, data->devicefile)) {
+		pr_err("ERROR: Partition too small.\n");
+		return -1;
+	}
+
+	pr_info("Running signature check.\n");
+	ret = imx6_bbu_check_img(data->imagefile, data->imagefile);
+	if (ret != 0) {
+		pr_err("Image signature check failed!\n");
+		return -1;
+	}
 
 	pr_debug("update file: S:%s -> D:%s\n",
 			data->imagefile,
@@ -253,11 +293,16 @@ static int imx6_bbu_file_handler(struct bbu_handler *handler, struct bbu_data *d
 		dst = concat_path_file(SWU_MNT_PATH, basename(fn));
 		verbose = data->flags & BBU_FLAGS_VERBOSE;
 		ret = copy_file(data->imagefile, dst, verbose);
+		if (!ret && imx6_bbu_check_img(data->imagefile, dst)) {
+			ret = -1;
+		}
 		free(dst);
 	}
 
 	umount(SWU_MNT_PATH);
 	unlink_recursive("/tmp/swu", NULL);
+
+	pr_info("update status: %d\n", ret);
 
 	return ret;
 }
@@ -273,7 +318,7 @@ static int imx6_bbu_register_blk_dev_handler(void)
 	handler->handler = &imx6_bbu_blk_dev_handler;
 	handler->devicefile = "/dev/mmc2";
 	handler->name = "blkdev";
-	
+
 	return bbu_register_handler(handler);
 }
 
