@@ -59,7 +59,7 @@ struct img_data {
 };
 
 static struct img_data img_map[] = {
-	{BB, "flash", "spi", "/dev/m25p0.barebox"},
+	{BB, "flash", "spiflash", "/dev/m25p0.barebox"},
 	{BB, "emmc", "mmc", "/dev/mmc3.barebox"},
 	{BB, "sd", "mmc", "/dev/mmc2.barebox"},
 	{BB_ENV, "flash", "blkdev", "/dev/m25p0.barebox-environment"},
@@ -108,16 +108,22 @@ static int swu_update_bb(const char *bb_dev)
 	struct bbu_data data = { .flags = 0 };
 	int ret = 0;
 
-	img = getenv("BAREBOX_ENV");
+	img = getenv("BAREBOX_IMAGE");
 	if (img) {
-		id = swu_get_img_data(BB_ENV, bb_dev);
+		id = swu_get_img_data(BB, bb_dev);
 		if (!id)
 			return -EINVAL;
 		snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
+		printf("img: %s dev: %s hdl: %s\n", full_nm, id->target_dev, id->handler_name);
 		data.devicefile = id->target_dev;
 		data.handler_name = id->handler_name;
 		data.imagefile = full_nm;
+		data.flags |= BBU_FLAG_YES;
+		data.image = read_file(data.imagefile, &data.len);
+		if (!data.image)
+			return -errno;
 		ret = barebox_update(&data);
+		free(data.image);
 	}
 
 	return ret;
@@ -241,7 +247,7 @@ static int swu_update_dtb(const char *os_dev)
 
 	img = getenv("DTS_IMAGE");
 	if (img) {
-		id = swu_get_img_data(KERNEL, os_dev);
+		id = swu_get_img_data(DTB, os_dev);
 		if (!id)
 			return -EINVAL;
 		snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
@@ -385,6 +391,15 @@ static int do_swu(int argc, char *argv[])
 
 BAREBOX_CMD_HELP_START()
 BAREBOX_CMD_HELP_TEXT("TBD.")
+BAREBOX_CMD_HELP_END
+
+BAREBOX_CMD_HELP_START(swu)
+BAREBOX_CMD_HELP_TEXT("Options:")
+BAREBOX_CMD_HELP_OPT("-l\t", "list registered targets")
+BAREBOX_CMD_HELP_OPT("-t TARGET", "specify data target handler name")
+BAREBOX_CMD_HELP_OPT("-d DEVICE", "write image to DEVICE")
+BAREBOX_CMD_HELP_OPT("-y\t", "autom. use 'yes' when asking confirmations")
+BAREBOX_CMD_HELP_OPT("-f LEVEL", "set force level")
 BAREBOX_CMD_HELP_END
 
 BAREBOX_CMD_START(swu)
