@@ -254,6 +254,7 @@ static int swu_update_dtb(const char *os_dev)
 		data.devicefile = id->target_dev;
 		data.handler_name = id->handler_name;
 		data.imagefile = full_nm;
+		data.image = "oftree";
 		ret = barebox_update(&data);
 	}
 

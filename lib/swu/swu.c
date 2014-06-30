@@ -127,7 +127,7 @@ static int imx6_bbu_hfile_status(const char *ifn)
 	int ret;
 
 	if (!ifn)
-		return -1;
+		return -EINVAL;
 
 	snprintf(hashfile, sizeof(hashfile), "%s.md5sum", ifn);
 	ret = stat(hashfile, &st);
@@ -151,11 +151,11 @@ static int imx6_bbu_check_hash(const char *ifn, const char *ofn,
 	ret = stat(ifn, &st);
 	if (ret != 0) {
 		pr_err("Cannot stat %s\n", ifn);
-		return -1;
+		return -ENOENT;
 	}
 	d = digest_get_by_name(DIGEST_ALG);
 	if (!d)
-		return -1;
+		return -ENOENT;
 
 	h = calloc(d->length, sizeof(unsigned char));
 	if (!h) {
@@ -175,7 +175,7 @@ static int imx6_bbu_check_hash(const char *ifn, const char *ofn,
 		pr_debug("\n");
 		if (i != d->length) {
 			pr_info("ERROR: Signature check failed.\n");
-			ret = -1;
+			ret = -EINVAL;
 		} else {
 			pr_info("Signature check ok.\n");
 			ret = 0;
@@ -199,19 +199,19 @@ static int imx6_bbu_check_img_hash(const char *ifn, const char *ofn)
 
 	d = digest_get_by_name(DIGEST_ALG);
 	if (!d)
-		return -1;
+		return -EINVAL;
 
 	snprintf(hashfile, sizeof(hashfile)-1, "%s.md5sum", ifn);
 	fd = open(hashfile, O_RDONLY);
 	pr_info("hash file: %s\n", hashfile);
 	if (fd < 0)
-		return -1;
+		return -ENOENT;
 
 	ret = read(fd, hash, HASH_SZ);
 	close(fd);
 
 	if (ret != HASH_SZ)
-		return -1;
+		return -EINVAL;
 
 	hash[HASH_SZ] = '\0';
 
@@ -268,14 +268,14 @@ static int imx6_bbu_blk_dev_handler(struct bbu_handler *handler,
 
 	if (imx6_bbu_check_limits(data->imagefile, data->devicefile)) {
 		pr_err("ERROR: Partition too small.\n");
-		return -1;
+		return -EINVAL;
 	}
 
 	pr_info("Running signature check.\n");
 	ret = imx6_bbu_check_img(data->imagefile, data->imagefile);
 	if (ret != 0) {
 		pr_err("Image signature check failed!\n");
-		return -1;
+		return -EINVAL;
 	}
 
 	pr_debug("update block device: S:%s -> D:%s\n",
@@ -285,7 +285,7 @@ static int imx6_bbu_blk_dev_handler(struct bbu_handler *handler,
 	verbose = data->flags & BBU_FLAGS_VERBOSE;
 	ret = copy_file(data->imagefile, data->devicefile, verbose);
 	if (!ret && imx6_bbu_check_img(data->imagefile, data->devicefile))
-		ret = -1;
+		ret = -EINVAL;
 
 	pr_info("update status: %d\n", ret);
 
@@ -298,10 +298,76 @@ static int imx6_bbu_safe_copy(const char *s, const char *d, int verbose)
 
 	ret = copy_file(s, d, verbose);
 	if (!ret && imx6_bbu_check_img(s, d))
-			ret = -1;
+			ret = -EINVAL;
 
 	return ret;
 }
+
+static int imx6_bbu_get_dir_size(const char *ifn, loff_t *tot)
+{
+	struct stat si;
+	struct dirent *d;
+	char tmp[PATH_MAX];
+	DIR *dir;
+	int ret = 0;
+
+	*tot = 0;
+	dir = opendir(SWU_MNT_PATH);
+	if (!dir)
+		return -ENOENT;
+
+	while ((d = readdir(dir))) {
+		if (!strcmp(d->d_name, ".") || !strcmp(d->d_name, ".."))
+			continue;
+		if (!strcmp(d->d_name, basename((char *)ifn)))
+			continue;
+		
+		snprintf(tmp, sizeof(tmp)-1, SWU_MNT_PATH"%s", d->d_name);	
+		if (stat(tmp, &si)) {
+			ret = -ENOENT;
+			break;
+		}
+		
+		/* Directories not supported */
+		if (S_ISDIR(si.st_mode)) {
+			ret = -EINVAL;
+			break;
+		}
+		*tot += si.st_size;
+	}
+	closedir(dir);
+
+	return ret;
+}
+
+static int imx6_bbu_check_space(const char *ifn, const char *ofn)
+{
+	loff_t dirsz;
+	struct stat si, so;
+
+	if (stat(ifn, &si))
+		return -ENOENT;
+
+	if (stat(ofn, &so))
+		return -ENOENT;
+
+	if (imx6_bbu_get_dir_size(ifn, &dirsz)) {
+		pr_err("ERROR: Cannot get directory size.\n");
+		return -EINVAL;
+	}
+	pr_debug("dev sz: %llu file sz: %llu dir sz: %llu\n", 
+			so.st_size,
+			si.st_size,
+			dirsz);
+
+	if (dirsz + si.st_size > so.st_size) {
+		pr_err("ERROR: Not enough free space.\n");
+		return -EFBIG;
+	}
+
+	return 0;
+}
+
 /*
 * Copy sw update file to mounted fs
 */
@@ -310,16 +376,11 @@ static int imx6_bbu_file_handler(struct bbu_handler *handler,
 {
 	int ret, verbose;
 
-	if (imx6_bbu_check_limits(data->imagefile, data->devicefile)) {
-		pr_err("ERROR: Partition too small.\n");
-		return -1;
-	}
-
 	pr_info("Running signature check.\n");
 	ret = imx6_bbu_check_img(data->imagefile, data->imagefile);
 	if (ret != 0) {
 		pr_err("Image signature check failed!\n");
-		return -1;
+		return -EINVAL;
 	}
 
 	pr_debug("update file: S:%s -> D:%s\n",
@@ -327,9 +388,8 @@ static int imx6_bbu_file_handler(struct bbu_handler *handler,
 			data->devicefile);
 
 	make_directory(SWU_MNT_PATH);
-
 	ret = mount(data->devicefile, NULL, SWU_MNT_PATH, "");
-	if (!ret) {
+	if (!ret && !imx6_bbu_check_space(data->imagefile, data->devicefile)) {
 		char *dst;
 		char *fn = (char *)data->imagefile;
 		dst = concat_path_file(SWU_MNT_PATH, basename(fn));
@@ -365,7 +425,7 @@ static int imx6_bbu_check_lvds_param(void)
 		const char *param = getenv(lvds_params[i].param);
 		if (!param) {
 			pr_err("ERROR: %s not defined\n", lvds_params[i].param);
-			return -1;
+			return -EINVAL;
 		}
 		i++;
 	}
