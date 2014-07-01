@@ -120,7 +120,7 @@ static int ctoi(char character)
 /**
  * check if checksum file is present
  */
-static int imx6_bbu_hfile_status(const char *ifn)
+static int swu_hfile_status(const char *ifn)
 {
 	unsigned char hashfile[PATH_MAX];
 	struct stat st;
@@ -139,7 +139,7 @@ static int imx6_bbu_hfile_status(const char *ifn)
 /**
  * calculate and compare hashes
  */
-static int imx6_bbu_check_hash(const char *ifn, const char *ofn,
+static int swu_check_hash(const char *ifn, const char *ofn,
 			const unsigned char *hash)
 {
 	struct stat st;
@@ -190,7 +190,7 @@ static int imx6_bbu_check_hash(const char *ifn, const char *ofn,
 /**
  * get hash from checksum file and check integrity
  */
-static int imx6_bbu_check_img_hash(const char *ifn, const char *ofn)
+static int swu_check_img_hash(const char *ifn, const char *ofn)
 {
 	struct digest *d;
 	char hashfile[PATH_MAX];
@@ -216,12 +216,12 @@ static int imx6_bbu_check_img_hash(const char *ifn, const char *ofn)
 	hash[HASH_SZ] = '\0';
 
 	pr_info(">hash: %s\n", hash);
-	ret = imx6_bbu_check_hash(ifn, ofn, hash);
+	ret = swu_check_hash(ifn, ofn, hash);
 
 	return ret;
 }
 
-static int imx6_bbu_check_limits(const char *ifn, const char *ofn)
+static int swu_check_limits(const char *ifn, const char *ofn)
 {
 	struct stat si, so;
 
@@ -249,30 +249,30 @@ static int imx6_bbu_check_limits(const char *ifn, const char *ofn)
 /**
  * start image sig check.
  */
-static int imx6_bbu_check_img(const char *ifn, const char *ofn)
+static int swu_check_img(const char *ifn, const char *ofn)
 {
-	if (imx6_bbu_hfile_status(ifn)) {
+	if (swu_hfile_status(ifn)) {
 		pr_info("Integrity check skipped.\n");
 		return 0;
 	}
-	return imx6_bbu_check_img_hash(ifn, ofn);
+	return swu_check_img_hash(ifn, ofn);
 }
 
 /**
  * Write sw image to block device
  */
-static int imx6_bbu_blk_dev_handler(struct bbu_handler *handler,
+static int swu_blk_dev_handler(struct bbu_handler *handler,
 				struct bbu_data *data)
 {
 	int ret, verbose;
 
-	if (imx6_bbu_check_limits(data->imagefile, data->devicefile)) {
+	if (swu_check_limits(data->imagefile, data->devicefile)) {
 		pr_err("ERROR: Partition too small.\n");
 		return -EINVAL;
 	}
 
 	pr_info("Running signature check.\n");
-	ret = imx6_bbu_check_img(data->imagefile, data->imagefile);
+	ret = swu_check_img(data->imagefile, data->imagefile);
 	if (ret != 0) {
 		pr_err("Image signature check failed!\n");
 		return -EINVAL;
@@ -284,7 +284,7 @@ static int imx6_bbu_blk_dev_handler(struct bbu_handler *handler,
 
 	verbose = data->flags & BBU_FLAGS_VERBOSE;
 	ret = copy_file(data->imagefile, data->devicefile, verbose);
-	if (!ret && imx6_bbu_check_img(data->imagefile, data->devicefile))
+	if (!ret && swu_check_img(data->imagefile, data->devicefile))
 		ret = -EINVAL;
 
 	pr_info("update status: %d\n", ret);
@@ -292,18 +292,18 @@ static int imx6_bbu_blk_dev_handler(struct bbu_handler *handler,
 	return ret;
 }
 
-static int imx6_bbu_safe_copy(const char *s, const char *d, int verbose)
+static int swu_safe_copy(const char *s, const char *d, int verbose)
 {
 	int ret;
 
 	ret = copy_file(s, d, verbose);
-	if (!ret && imx6_bbu_check_img(s, d))
+	if (!ret && swu_check_img(s, d))
 			ret = -EINVAL;
 
 	return ret;
 }
 
-static int imx6_bbu_get_dir_size(const char *ifn, loff_t *tot)
+static int swu_get_dir_size(const char *ifn, loff_t *tot)
 {
 	struct stat si;
 	struct dirent *d;
@@ -340,7 +340,7 @@ static int imx6_bbu_get_dir_size(const char *ifn, loff_t *tot)
 	return ret;
 }
 
-static int imx6_bbu_check_space(const char *ifn, const char *ofn)
+static int swu_check_space(const char *ifn, const char *ofn)
 {
 	loff_t dirsz;
 	struct stat si, so;
@@ -351,7 +351,7 @@ static int imx6_bbu_check_space(const char *ifn, const char *ofn)
 	if (stat(ofn, &so))
 		return -ENOENT;
 
-	if (imx6_bbu_get_dir_size(ifn, &dirsz)) {
+	if (swu_get_dir_size(ifn, &dirsz)) {
 		pr_err("ERROR: Cannot get directory size.\n");
 		return -EINVAL;
 	}
@@ -371,13 +371,13 @@ static int imx6_bbu_check_space(const char *ifn, const char *ofn)
 /*
 * Copy sw update file to mounted fs
 */
-static int imx6_bbu_file_handler(struct bbu_handler *handler,
+static int swu_file_handler(struct bbu_handler *handler,
 				struct bbu_data *data)
 {
 	int ret, verbose;
 
 	pr_info("Running signature check.\n");
-	ret = imx6_bbu_check_img(data->imagefile, data->imagefile);
+	ret = swu_check_img(data->imagefile, data->imagefile);
 	if (ret != 0) {
 		pr_err("Image signature check failed!\n");
 		return -EINVAL;
@@ -389,18 +389,18 @@ static int imx6_bbu_file_handler(struct bbu_handler *handler,
 
 	make_directory(SWU_MNT_PATH);
 	ret = mount(data->devicefile, NULL, SWU_MNT_PATH, "");
-	if (!ret && !imx6_bbu_check_space(data->imagefile, data->devicefile)) {
+	if (!ret && !swu_check_space(data->imagefile, data->devicefile)) {
 		char *dst;
 		char *fn = (char *)data->imagefile;
 		dst = concat_path_file(SWU_MNT_PATH, basename(fn));
 		verbose = data->flags & BBU_FLAGS_VERBOSE;
-		ret = imx6_bbu_safe_copy(data->imagefile, dst, verbose);
+		ret = swu_safe_copy(data->imagefile, dst, verbose);
 		if (data->image) {
 			char *lnk;
 			lnk = concat_path_file(SWU_MNT_PATH, data->image);
 			ret = symlink(dst, lnk);
 			if (ret) /* FIXME: FAT workaround */
-				ret = imx6_bbu_safe_copy(dst, lnk, 0);
+				ret = swu_safe_copy(dst, lnk, 0);
 			free(lnk);
 		}
 		free(dst);
@@ -417,7 +417,7 @@ static int imx6_bbu_file_handler(struct bbu_handler *handler,
 /**
  * check if all lvds paramter are supplied
  */
-static int imx6_bbu_check_lvds_param(void)
+static int swu_check_lvds_param(void)
 {
 	int i = 0;
 
@@ -436,7 +436,7 @@ static int imx6_bbu_check_lvds_param(void)
 /*
 * print of from some node onwards
 */
-static inline void imx6_bbu_dump_of(struct device_node *from, const char *prop)
+static inline void swu_dump_of(struct device_node *from, const char *prop)
 {
 	struct device_node *n;
 	printf("\n---\n");
@@ -449,7 +449,7 @@ static inline void imx6_bbu_dump_of(struct device_node *from, const char *prop)
  * get first node that contains property "prop"
  * TODO: maybe needs fixing in the future: more displays etc.
  */
-static struct device_node *imx6_bbu_get_lvds_node(
+static struct device_node *swu_get_lvds_node(
 		struct device_node *from,
 		const char *prop)
 {
@@ -467,20 +467,20 @@ static struct device_node *imx6_bbu_get_lvds_node(
 /**
  * set property with no value. now used only for single/dual channel
  */
-static int imx6_bbu_update_prop_none(struct device_node *root,
+static int swu_update_prop_none(struct device_node *root,
 				struct lvds_param_data *ld, const char *v)
 {
 	struct device_node *n = NULL;
 	struct property *pp = NULL;
 	int sta = strncmp(v, "0", 1);
 
-	n = imx6_bbu_get_lvds_node(root, ld->prop);
+	n = swu_get_lvds_node(root, ld->prop);
 	/* disabled and not active in DTS */
 	if (!sta && !n)
 		return 0;
 	/* enabled and not active in DTS */
 	if (sta && !n) {
-		n = imx6_bbu_get_lvds_node(root, "fsl,data-mapping");
+		n = swu_get_lvds_node(root, "fsl,data-mapping");
 		if (!n)
 			return -EINVAL;
 		n = n->parent;
@@ -501,7 +501,7 @@ static int imx6_bbu_update_prop_none(struct device_node *root,
 /**
  * set string property
  */
-static int imx6_bbu_update_prop_str(struct device_node *root,
+static int swu_update_prop_str(struct device_node *root,
 				struct lvds_param_data *ld, const char *v)
 {
 	size_t len = strlen(v)+1;
@@ -510,9 +510,9 @@ static int imx6_bbu_update_prop_str(struct device_node *root,
 
 	/* search after status is not explicit */
 	if (!strncmp(ld->prop, "status", sizeof("status")-1))
-		n = imx6_bbu_get_lvds_node(root, "fsl,data-mapping");
+		n = swu_get_lvds_node(root, "fsl,data-mapping");
 	else
-		n = imx6_bbu_get_lvds_node(root, ld->prop);
+		n = swu_get_lvds_node(root, ld->prop);
 	if (!n)
 		return -EINVAL;
 	pp = of_find_property(n, ld->prop, NULL);
@@ -529,7 +529,7 @@ static int imx6_bbu_update_prop_str(struct device_node *root,
 /**
  * set integer property
  */
-static int imx6_bbu_update_prop_int(struct device_node *root,
+static int swu_update_prop_int(struct device_node *root,
 				struct lvds_param_data *ld, const char *v)
 {
 	struct device_node *n = NULL;
@@ -540,7 +540,7 @@ static int imx6_bbu_update_prop_int(struct device_node *root,
 	if (!isdigit(*v))
 		return -EINVAL;
 
-	n = imx6_bbu_get_lvds_node(root, ld->prop);
+	n = swu_get_lvds_node(root, ld->prop);
 	if (!n)
 		return -EINVAL;
 
@@ -563,12 +563,12 @@ static int imx6_bbu_update_prop_int(struct device_node *root,
 /**
  * udpate panel/display settings in OF.
  */
-static int imx6_bbu_update_of(struct device_node *root)
+static int swu_update_of(struct device_node *root)
 {
 	int ret = 0, i = 0;
 	struct device_node *n;
 
-	n = imx6_bbu_get_lvds_node(root, "fsl,data-mapping");
+	n = swu_get_lvds_node(root, "fsl,data-mapping");
 	if (n)
 		of_print_nodes(n->parent, 0);
 
@@ -578,13 +578,13 @@ static int imx6_bbu_update_of(struct device_node *root)
 
 		switch (ld->type) {
 		case NONE:
-			ret = imx6_bbu_update_prop_none(root, ld, val);
+			ret = swu_update_prop_none(root, ld, val);
 			break;
 		case STR:
-			ret = imx6_bbu_update_prop_str(root, ld, val);
+			ret = swu_update_prop_str(root, ld, val);
 			break;
 		case INT:
-			ret = imx6_bbu_update_prop_int(root, ld, val);
+			ret = swu_update_prop_int(root, ld, val);
 			break;
 		}
 
@@ -596,7 +596,7 @@ static int imx6_bbu_update_of(struct device_node *root)
 		i++;
 	}
 
-	n = imx6_bbu_get_lvds_node(root, "fsl,data-mapping");
+	n = swu_get_lvds_node(root, "fsl,data-mapping");
 	if (n)
 		of_print_nodes(n->parent, 0);
 
@@ -604,7 +604,7 @@ static int imx6_bbu_update_of(struct device_node *root)
 	return ret;
 }
 
-static int imx6_bbu_save_of(struct device_node *root, const char *dtb)
+static int swu_save_of(struct device_node *root, const char *dtb)
 {
 	struct fdt_header *fdt = NULL;
 
@@ -618,7 +618,7 @@ static int imx6_bbu_save_of(struct device_node *root, const char *dtb)
 /**
  * lvds settings update handler
  */
-static int imx6_bbu_lvds_handler(struct bbu_handler *handler,
+static int swu_lvds_handler(struct bbu_handler *handler,
 			struct bbu_data *data)
 {
 	int ret = 0;
@@ -626,7 +626,7 @@ static int imx6_bbu_lvds_handler(struct bbu_handler *handler,
 	size_t size;
 	char dtb[PATH_MAX];
 
-	if (imx6_bbu_check_lvds_param())
+	if (swu_check_lvds_param())
 		pr_err("ERROR: missing.\n");
 
 	pr_debug("update file: S:%s -> D:%s\n",
@@ -646,9 +646,9 @@ static int imx6_bbu_lvds_handler(struct bbu_handler *handler,
 		pr_debug("Updating dts...\n");
 		root = of_unflatten_dtb(fdt);
 		free(fdt);
-		ret = imx6_bbu_update_of(root);
+		ret = swu_update_of(root);
 		if (!ret)
-			ret = imx6_bbu_save_of(root, dtb);
+			ret = swu_save_of(root, dtb);
 		free(root);
 	} else
 		ret = -EIO;
@@ -664,12 +664,12 @@ static int imx6_bbu_lvds_handler(struct bbu_handler *handler,
 /**
  * Register block device update handler
  */
-static int imx6_bbu_register_blk_dev_handler(void)
+static int swu_register_blk_dev_handler(void)
 {
 	struct bbu_handler *handler;
 
 	handler = xzalloc(sizeof(*handler));
-	handler->handler = &imx6_bbu_blk_dev_handler;
+	handler->handler = &swu_blk_dev_handler;
 	handler->devicefile = "/dev/mmc2";
 	handler->name = "blkdev";
 
@@ -679,12 +679,12 @@ static int imx6_bbu_register_blk_dev_handler(void)
 /**
  * Register block device file handler
  */
-static int imx6_bbu_register_file_handler(void)
+static int swu_register_file_handler(void)
 {
 	struct bbu_handler *handler;
 
 	handler = xzalloc(sizeof(*handler));
-	handler->handler = &imx6_bbu_file_handler;
+	handler->handler = &swu_file_handler;
 	handler->devicefile = "/dev/mmc2.0";
 	handler->name = "file";
 
@@ -694,12 +694,12 @@ static int imx6_bbu_register_file_handler(void)
 /**
  * Register lvds timings update handler
  */
-static int imx6_bbu_register_lvds_handler(void)
+static int swu_register_lvds_handler(void)
 {
 	struct bbu_handler *handler;
 
 	handler = xzalloc(sizeof(*handler));
-	handler->handler = &imx6_bbu_lvds_handler;
+	handler->handler = &swu_lvds_handler;
 	handler->name = "lvds";
 
 	return bbu_register_handler(handler);
@@ -708,15 +708,15 @@ static int imx6_bbu_register_lvds_handler(void)
 /**
  * register software update handlers
  */
-int imx6_bbu_register_dmo_swu_handlers(void)
+int swu_register_dmo_handlers(void)
 {
 	pr_debug("installing swu handlers\n");
 
-	imx6_bbu_register_blk_dev_handler();
+	swu_register_blk_dev_handler();
 
-	imx6_bbu_register_file_handler();
+	swu_register_file_handler();
 
-	imx6_bbu_register_lvds_handler();
+	swu_register_lvds_handler();
 
 	return 0;
 }

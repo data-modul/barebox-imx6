@@ -111,7 +111,7 @@ static int realq7_env_init(void)
 		BBU_HANDLER_FLAG_DEFAULT);
 	imx6_bbu_internal_mmc_register_handler("mmc", "/dev/mmc3.barebox", 0);
 #if defined(CONFIG_DMO_SWU)	
-	imx6_bbu_register_dmo_swu_handlers();
+	swu_register_dmo_handlers();
 #endif
 	return 0;
 }
