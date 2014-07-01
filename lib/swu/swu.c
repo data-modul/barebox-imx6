@@ -55,7 +55,7 @@
 			close(fd); \
 		} \
 		pr_info(fmt, ##args); \
-	} while(0);
+	} while (0)
 
 enum prop_type {
 	NONE,
@@ -215,7 +215,7 @@ static int swu_check_img_hash(const char *ifn, const char *ofn)
 
 	snprintf(hashfile, sizeof(hashfile)-1, "%s.md5sum", ifn);
 	fd = open(hashfile, O_RDONLY);
-	swu_log("hash file: %s\n", hashfile)
+	swu_log("hash file: %s\n", hashfile);
 	if (fd < 0)
 		return -ENOENT;
 
@@ -330,13 +330,13 @@ static int swu_get_dir_size(const char *ifn, loff_t *tot)
 			continue;
 		if (!strcmp(d->d_name, basename((char *)ifn)))
 			continue;
-		
-		snprintf(tmp, sizeof(tmp)-1, SWU_MNT_PATH"%s", d->d_name);	
+
+		snprintf(tmp, sizeof(tmp)-1, SWU_MNT_PATH"%s", d->d_name);
 		if (stat(tmp, &si)) {
 			ret = -ENOENT;
 			break;
 		}
-		
+
 		/* Directories not supported */
 		if (S_ISDIR(si.st_mode)) {
 			ret = -EINVAL;

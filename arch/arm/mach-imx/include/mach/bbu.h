@@ -95,8 +95,15 @@ static inline int imx_bbu_external_nand_register_handler(const char *name, char 
 
 #if defined(CONFIG_DMO_SWU)
 int swu_register_dmo_handlers(void);
+int swu_check_img(const char *ifn, const char *ofn);
+
 #else
 static inline int swu_register_dmo_handlers(void)
+{
+	return -ENOSYS;
+}
+
+int swu_check_img(const char *ifn, const char *ofn)
 {
 	return -ENOSYS;
 }

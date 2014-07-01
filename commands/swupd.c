@@ -31,6 +31,7 @@
 #include <libgen.h>
 #include <environment.h>
 #include <usb/usb.h>
+#include <mach/bbu.h>
 
 #define BB_DEFAULT_DEV	"flash"
 #define OS_DEFAULT_DEV	"emmc"
@@ -43,6 +44,7 @@
 #define BUFSIZE		1024
 #define NM_LEN		128
 
+
 #define LOGFILE		"/mnt/disk/update.log"
 #define swu_log(fmt, args...) \
 	do { \
@@ -53,7 +55,7 @@
 			close(fd); \
 		} \
 		pr_info(fmt, ##args); \
-	} while(0);
+	} while (0)
 
 enum img_type {
 	BB,
@@ -95,8 +97,6 @@ static struct img_data img_map[] = {
 	{LVDS, "mmc", "lvds", "/dev/mmc2.0"},
 	{LVDS, "sata", "lvds", "/dev/sda1"}
 };
-
-extern int swu_check_img(const char *ifn, const char *ofn);
 
 /**
 * find update image data using type and target dev
@@ -358,6 +358,57 @@ static int swu_update_lvds_param(const char *os_dev)
 	return ret;
 }
 
+static int swu_check_config_ver(void)
+{
+	char *line, *p;
+	size_t size;
+	int ret = 0, i;
+
+	swu_log("Checking config file version.\n");
+	line = read_file(INIFILE, &size);
+	if (!line)
+		return -EINVAL;
+
+	for (i = 0; i < size; i++) {
+		if (line[i] == '\n') {
+			line[i] = '\0';
+			break;
+		}
+	}
+
+	if (i == size) {
+		ret =  -EINVAL;
+		goto out;
+	}
+	/* #<ver=> = 7 chars */
+	if (strlen(line) != 7 + sizeof(SWU_CONF_VER) - 1) {
+		ret =  -EINVAL;
+		goto out;
+	}
+
+	if (strncmp(line, "#<ver=", 6) || !strchr(line, '>')) {
+		ret = -EINVAL;
+		goto out;
+	}
+
+	p = strchr(&line[6], '>');
+	if (!p) {
+		ret = -EINVAL;
+		goto out;
+	}
+	*p = '\0';
+	swu_log("conf ver = %s\n", &line[6]);
+	if (strlen(&line[6]) != strlen(SWU_CONF_VER)) {
+		ret = -EINVAL;
+		goto out;
+	}
+	if (strcmp(&line[6], SWU_CONF_VER))
+		ret = -EINVAL;
+
+out:
+	free(line);
+	return ret;
+}
 
 /* TODO config file versioning */
 static int swu_read_config(void)
@@ -381,9 +432,8 @@ static int swu_read_config(void)
 					setenv(ptr, v);
 				}
 			}
-			if (i + 1 >= size)
-				break;
-			ptr = &buf[i+1];
+			if (i + 1 < size)
+				ptr = &buf[i+1];
 		}
 	}
 
@@ -459,7 +509,15 @@ static int do_swu(int argc, char *argv[])
 		return -EPERM;
 	}
 
-	swu_log("<<< SWU START >>>\nReading ini file\n");
+	swu_log("<<< SWU START >>>\n");
+
+	if (swu_check_config_ver()) {
+		swu_log("ERROR: invalid config file version.\n");
+		return -EINVAL;
+	}
+
+	swu_log("Reading ini file\n");
+
 	swu_read_config();
 
 	bb_dev = getenv("BB_TARGET_DEV");
