@@ -45,6 +45,18 @@
 #define HASH_SZ			32
 #define DIGEST_ALG		"md5"
 
+#define LOGFILE		"/mnt/disk/update.log"
+#define swu_log(fmt, args...) \
+	do { \
+		int fd; \
+		fd = open(LOGFILE, O_CREAT|O_APPEND|O_WRONLY); \
+		if (fd > 0) { \
+			fprintf(fd, fmt, ##args); \
+			close(fd); \
+		} \
+		pr_info(fmt, ##args); \
+	} while(0);
+
 enum prop_type {
 	NONE,
 	STR,
@@ -165,7 +177,7 @@ static int swu_check_hash(const char *ifn, const char *ofn,
 
 	ret = digest_file_window(d, (char *)ofn, h, 0, st.st_size);
 	if (ret == 0) {
-		pr_debug("<hash: ");
+		pr_info("<hash: ");
 		for (i = 0; i < d->length; i++) {
 			ref = (ctoi(hash[2*i]) << 4) | ctoi(hash[(2*i) + 1]);
 			pr_debug("%02x", h[i]);
@@ -174,10 +186,10 @@ static int swu_check_hash(const char *ifn, const char *ofn,
 		}
 		pr_debug("\n");
 		if (i != d->length) {
-			pr_info("ERROR: Signature check failed.\n");
+			swu_log("ERROR: signature check failed.\n");
 			ret = -EINVAL;
 		} else {
-			pr_info("Signature check ok.\n");
+			swu_log("signature check ok.\n");
 			ret = 0;
 		}
 	}
@@ -203,7 +215,7 @@ static int swu_check_img_hash(const char *ifn, const char *ofn)
 
 	snprintf(hashfile, sizeof(hashfile)-1, "%s.md5sum", ifn);
 	fd = open(hashfile, O_RDONLY);
-	pr_info("hash file: %s\n", hashfile);
+	swu_log("hash file: %s\n", hashfile)
 	if (fd < 0)
 		return -ENOENT;
 
@@ -215,7 +227,7 @@ static int swu_check_img_hash(const char *ifn, const char *ofn)
 
 	hash[HASH_SZ] = '\0';
 
-	pr_info(">hash: %s\n", hash);
+	swu_log(">hash: %s\n", hash);
 	ret = swu_check_hash(ifn, ofn, hash);
 
 	return ret;
@@ -228,17 +240,15 @@ static int swu_check_limits(const char *ifn, const char *ofn)
 	if (!ifn || !ofn)
 		return -EINVAL;
 
-	pr_debug("ifn: %s ofn: %s\n", ifn, ofn);
-
 	if (stat(ifn, &si)) {
 		pr_debug("stat failed: %s\n", ifn);
 		return -ENOENT;
 	}
+
 	if (stat(ofn, &so)) {
 		pr_debug("stat failed: %s\n", ofn);
 		return -ENOENT;
 	}
-	pr_debug("si: %lli so: %lli\n", si.st_size, so.st_size);
 
 	if (so.st_size < si.st_size)
 		return -EINVAL;
@@ -249,10 +259,10 @@ static int swu_check_limits(const char *ifn, const char *ofn)
 /**
  * start image sig check.
  */
-static int swu_check_img(const char *ifn, const char *ofn)
+int swu_check_img(const char *ifn, const char *ofn)
 {
 	if (swu_hfile_status(ifn)) {
-		pr_info("Integrity check skipped.\n");
+		pr_info("integrity check skipped %s.\n", ifn);
 		return 0;
 	}
 	return swu_check_img_hash(ifn, ofn);
@@ -267,28 +277,27 @@ static int swu_blk_dev_handler(struct bbu_handler *handler,
 	int ret, verbose;
 
 	if (swu_check_limits(data->imagefile, data->devicefile)) {
-		pr_err("ERROR: Partition too small.\n");
+		swu_log("ERROR: partition to small.\n");
 		return -EINVAL;
 	}
 
-	pr_info("Running signature check.\n");
+	swu_log("running signature check.\n");
 	ret = swu_check_img(data->imagefile, data->imagefile);
 	if (ret != 0) {
-		pr_err("Image signature check failed!\n");
+		swu_log("ERROR: image signature check failed!\n");
 		return -EINVAL;
 	}
 
-	pr_debug("update block device: S:%s -> D:%s\n",
+	swu_log("update block device: S:%s -> D:%s\n",
 			data->imagefile,
 			data->devicefile);
 
 	verbose = data->flags & BBU_FLAGS_VERBOSE;
 	ret = copy_file(data->imagefile, data->devicefile, verbose);
-	if (!ret && swu_check_img(data->imagefile, data->devicefile))
+	if (!ret && swu_check_img(data->imagefile, data->devicefile)) {
+		swu_log("ERROR: copy or signature check failed.");
 		ret = -EINVAL;
-
-	pr_info("update status: %d\n", ret);
-
+	}
 	return ret;
 }
 
@@ -352,16 +361,12 @@ static int swu_check_space(const char *ifn, const char *ofn)
 		return -ENOENT;
 
 	if (swu_get_dir_size(ifn, &dirsz)) {
-		pr_err("ERROR: Cannot get directory size.\n");
+		pr_err("ERROR: cannot get directory size.\n");
 		return -EINVAL;
 	}
-	pr_debug("dev sz: %llu file sz: %llu dir sz: %llu\n", 
-			so.st_size,
-			si.st_size,
-			dirsz);
 
 	if (dirsz + si.st_size > so.st_size) {
-		pr_err("ERROR: Not enough free space.\n");
+		swu_log("ERROR: not enough free space.\n");
 		return -EFBIG;
 	}
 
@@ -376,20 +381,23 @@ static int swu_file_handler(struct bbu_handler *handler,
 {
 	int ret, verbose;
 
-	pr_info("Running signature check.\n");
+	swu_log("running signature check.\n");
 	ret = swu_check_img(data->imagefile, data->imagefile);
 	if (ret != 0) {
-		pr_err("Image signature check failed!\n");
+		swu_log("image signature check failed!\n");
 		return -EINVAL;
 	}
 
-	pr_debug("update file: S:%s -> D:%s\n",
+	swu_log("update file: S:%s -> D:%s\n",
 			data->imagefile,
 			data->devicefile);
 
 	make_directory(SWU_MNT_PATH);
 	ret = mount(data->devicefile, NULL, SWU_MNT_PATH, "");
-	if (!ret && !swu_check_space(data->imagefile, data->devicefile)) {
+	if (!ret)
+		ret = swu_check_space(data->imagefile, data->devicefile);
+
+	if (!ret) {
 		char *dst;
 		char *fn = (char *)data->imagefile;
 		dst = concat_path_file(SWU_MNT_PATH, basename(fn));
@@ -408,8 +416,6 @@ static int swu_file_handler(struct bbu_handler *handler,
 
 	umount(SWU_MNT_PATH);
 	unlink_recursive("/tmp/swu", NULL);
-
-	pr_info("update status: %d\n", ret);
 
 	return ret;
 }
@@ -600,7 +606,6 @@ static int swu_update_of(struct device_node *root)
 	if (n)
 		of_print_nodes(n->parent, 0);
 
-	printf("ret: %d\n", ret);
 	return ret;
 }
 
@@ -629,7 +634,7 @@ static int swu_lvds_handler(struct bbu_handler *handler,
 	if (swu_check_lvds_param())
 		pr_err("ERROR: missing.\n");
 
-	pr_debug("update file: S:%s -> D:%s\n",
+	swu_log("update file: S:%s -> D:%s\n",
 			data->imagefile,
 			data->devicefile);
 
@@ -643,7 +648,6 @@ static int swu_lvds_handler(struct bbu_handler *handler,
 	fdt = read_file(dtb, &size);
 	if (fdt) {
 		struct device_node *root;
-		pr_debug("Updating dts...\n");
 		root = of_unflatten_dtb(fdt);
 		free(fdt);
 		ret = swu_update_of(root);
@@ -655,8 +659,6 @@ static int swu_lvds_handler(struct bbu_handler *handler,
 
 	umount(SWU_MNT_PATH);
 	unlink_recursive("/tmp/swu", NULL);
-
-	pr_info("update status: %d\n", ret);
 
 	return ret;
 }

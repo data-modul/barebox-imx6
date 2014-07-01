@@ -34,12 +34,26 @@
 
 #define BB_DEFAULT_DEV	"flash"
 #define OS_DEFAULT_DEV	"emmc"
+#define CURRENT_BOOT	"/env/boot/current_boot"
+#define ENV_BOOT	"/env/boot"
 #define USB_DISK_DEV	"/dev/disk0.0"
 #define USB_MNT		"/mnt/disk"
 #define INIFILE		USB_MNT"/inifile"
 #define SWU_CONF_VER	"0.1"
 #define BUFSIZE		1024
 #define NM_LEN		128
+
+#define LOGFILE		"/mnt/disk/update.log"
+#define swu_log(fmt, args...) \
+	do { \
+		int fd; \
+		fd = open(LOGFILE, O_CREAT|O_APPEND|O_WRONLY); \
+		if (fd > 0) { \
+			fprintf(fd, fmt, ##args); \
+			close(fd); \
+		} \
+		pr_info(fmt, ##args); \
+	} while(0);
 
 enum img_type {
 	BB,
@@ -82,7 +96,9 @@ static struct img_data img_map[] = {
 	{LVDS, "sata", "lvds", "/dev/sda1"}
 };
 
-/*
+extern int swu_check_img(const char *ifn, const char *ofn);
+
+/**
 * find update image data using type and target dev
 */
 static struct img_data *swu_get_img_data(enum img_type type, const char *tgt)
@@ -97,8 +113,30 @@ static struct img_data *swu_get_img_data(enum img_type type, const char *tgt)
 	return NULL;
 }
 
-/*
-* update barebox
+/**
+* erase flash partition
+*/
+static int swu_erase_flash(const char *dev)
+{
+	struct stat s;
+	int fd, ret = 0;
+
+	if (stat(dev, &s))
+		return -ENOENT;
+
+	fd = open(dev, O_WRONLY);
+	if (fd < 0)
+		return -ENOENT;
+
+	ret = erase(fd, s.st_size, 0);
+
+	close(fd);
+
+	return ret;
+}
+
+/**
+* update barebox image
 */
 static int swu_update_bb(const char *bb_dev)
 {
@@ -109,27 +147,36 @@ static int swu_update_bb(const char *bb_dev)
 	int ret = 0;
 
 	img = getenv("BAREBOX_IMAGE");
-	if (img) {
-		id = swu_get_img_data(BB, bb_dev);
-		if (!id)
-			return -EINVAL;
-		snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-		printf("img: %s dev: %s hdl: %s\n", full_nm, id->target_dev, id->handler_name);
-		data.devicefile = id->target_dev;
-		data.handler_name = id->handler_name;
-		data.imagefile = full_nm;
-		data.flags |= BBU_FLAG_YES;
-		data.image = read_file(data.imagefile, &data.len);
-		if (!data.image)
-			return -errno;
-		ret = barebox_update(&data);
-		free(data.image);
-	}
+	if (!img)
+		return ret;
+
+	id = swu_get_img_data(BB, bb_dev);
+	if (!id)
+		return -EINVAL;
+
+	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
+	if (swu_check_img(full_nm, full_nm))
+		return -EINVAL;
+
+	data.devicefile = id->target_dev;
+	data.handler_name = id->handler_name;
+	data.imagefile = full_nm;
+	data.flags |= BBU_FLAG_YES;
+	data.image = read_file(data.imagefile, &data.len);
+	if (!data.image)
+		return -errno;
+	ret = barebox_update(&data);
+	if (!ret)
+		ret = swu_check_img(full_nm, id->target_dev);
+
+	free(data.image);
+
+	swu_log("update barebox status: %d\n", ret);
 
 	return ret;
 }
 
-/*
+/**
 * update barebox env
 */
 static int swu_update_bb_env(const char *bb_dev)
@@ -141,21 +188,28 @@ static int swu_update_bb_env(const char *bb_dev)
 	int ret = 0;
 
 	img = getenv("BAREBOX_ENV");
-	if (img) {
-		id = swu_get_img_data(BB_ENV, bb_dev);
-		if (!id)
-			return -EINVAL;
-		snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-		data.devicefile = id->target_dev;
-		data.handler_name = id->handler_name;
-		data.imagefile = full_nm;
-		ret = barebox_update(&data);
-	}
+	if (!img)
+		return ret;
+
+	id = swu_get_img_data(BB_ENV, bb_dev);
+	if (!id)
+		return -EINVAL;
+
+	if (swu_erase_flash(id->target_dev))
+		return -EINVAL;
+
+	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
+	data.devicefile = id->target_dev;
+	data.handler_name = id->handler_name;
+	data.imagefile = full_nm;
+	ret = barebox_update(&data);
+
+	swu_log("update barebox env status: %d\n", ret);
 
 	return ret;
 }
 
-/*
+/**
 * completely update os target device
 */
 static int swu_update_os_full(const char *os_dev)
@@ -167,21 +221,25 @@ static int swu_update_os_full(const char *os_dev)
 	int ret = 0;
 
 	img = getenv("FULL_IMAGE");
-	if (img) {
-		id = swu_get_img_data(OS, os_dev);
-		if (!id)
-			return -EINVAL;
-		snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-		data.devicefile = id->target_dev;
-		data.handler_name = id->handler_name;
-		data.imagefile = full_nm;
-		ret = barebox_update(&data);
-	}
+	if (!img)
+		return ret;
+
+	id = swu_get_img_data(OS, os_dev);
+	if (!id)
+		return -EINVAL;
+
+	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
+	data.devicefile = id->target_dev;
+	data.handler_name = id->handler_name;
+	data.imagefile = full_nm;
+	ret = barebox_update(&data);
+
+	swu_log("update os full image status: %d\n", ret);
 
 	return ret;
 }
 
-/*
+/**
 * update only rootfs on the os target device
 */
 static int swu_update_rootfs(const char *os_dev)
@@ -193,22 +251,26 @@ static int swu_update_rootfs(const char *os_dev)
 	int ret = 0;
 
 	img = getenv("ROOTFS_IMAGE");
-	if (img) {
-		printf("Starting update\n");
-		id = swu_get_img_data(ROOTFS, os_dev);
-		if (!id)
-			return -EINVAL;
-		snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-		data.devicefile = id->target_dev;
-		data.handler_name = id->handler_name;
-		data.imagefile = full_nm;
-		ret = barebox_update(&data);
-	}
+	if (!img)
+		return ret;
+
+	printf("Starting update\n");
+	id = swu_get_img_data(ROOTFS, os_dev);
+	if (!id)
+		return -EINVAL;
+
+	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
+	data.devicefile = id->target_dev;
+	data.handler_name = id->handler_name;
+	data.imagefile = full_nm;
+	ret = barebox_update(&data);
+
+	swu_log("update rootfs status: %d\n", ret);
 
 	return ret;
 }
 
-/*
+/**
 * update the kernel on the os target device
 */
 static int swu_update_kernel(const char *os_dev)
@@ -220,21 +282,25 @@ static int swu_update_kernel(const char *os_dev)
 	int ret = 0;
 
 	img = getenv("KERNEL_IMAGE");
-	if (img) {
-		id = swu_get_img_data(KERNEL, os_dev);
-		if (!id)
-			return -EINVAL;
-		snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-		data.devicefile = id->target_dev;
-		data.handler_name = id->handler_name;
-		data.imagefile = full_nm;
-		ret = barebox_update(&data);
-	}
+	if (!img)
+		return ret;
+
+	id = swu_get_img_data(KERNEL, os_dev);
+	if (!id)
+		return -EINVAL;
+
+	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
+	data.devicefile = id->target_dev;
+	data.handler_name = id->handler_name;
+	data.imagefile = full_nm;
+	ret = barebox_update(&data);
+
+	swu_log("update kernel status: %d\n", ret);
 
 	return ret;
 }
 
-/*
+/**
 * update flat device tree on the os target device
 */
 static int swu_update_dtb(const char *os_dev)
@@ -246,22 +312,26 @@ static int swu_update_dtb(const char *os_dev)
 	int ret = 0;
 
 	img = getenv("DTS_IMAGE");
-	if (img) {
-		id = swu_get_img_data(DTB, os_dev);
-		if (!id)
-			return -EINVAL;
-		snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-		data.devicefile = id->target_dev;
-		data.handler_name = id->handler_name;
-		data.imagefile = full_nm;
-		data.image = "oftree";
-		ret = barebox_update(&data);
-	}
+	if (!img)
+		return ret;
+
+	id = swu_get_img_data(DTB, os_dev);
+	if (!id)
+		return -EINVAL;
+
+	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
+	data.devicefile = id->target_dev;
+	data.handler_name = id->handler_name;
+	data.imagefile = full_nm;
+	data.image = "oftree";
+	ret = barebox_update(&data);
+
+	swu_log("update dtb status: %d\n", ret);
 
 	return ret;
 }
 
-/*
+/**
 * update lvds parameters
 */
 static int swu_update_lvds_param(const char *os_dev)
@@ -322,9 +392,19 @@ static int swu_read_config(void)
 	return 0;
 }
 
-/*
+/**
+*
+*/
+static void swu_init_logfile(void)
+{
+	int fd;
+	fd = open(LOGFILE, O_CREAT|O_TRUNC|O_WRONLY);
+	close(fd);
+}
+
+/**
 * mount usb stick containg thr sw images.
-# enable emmc device.
+* enable emmc device.
 */
 static int swu_prepare_update(void)
 {
@@ -347,7 +427,25 @@ static int swu_prepare_update(void)
 	if (dev)
 		ret = dev_set_param(dev, "probe", "1");
 
+	swu_init_logfile();
+
 	return ret;
+}
+
+/**
+*
+*/
+static int swu_switch_boot(const char *dev)
+{
+	int ret = 0;
+	char tmp[PATH_MAX];
+
+	ret = unlink(CURRENT_BOOT);
+	if (ret)
+		return ret;
+
+	snprintf(tmp, sizeof(tmp)-1, ENV_BOOT"/%s", dev);
+	return symlink(tmp, CURRENT_BOOT);
 }
 
 /* Use handler instead fixed functions */
@@ -361,6 +459,7 @@ static int do_swu(int argc, char *argv[])
 		return -EPERM;
 	}
 
+	swu_log("<<< SWU START >>>\nReading ini file\n");
 	swu_read_config();
 
 	bb_dev = getenv("BB_TARGET_DEV");
@@ -371,7 +470,7 @@ static int do_swu(int argc, char *argv[])
 	if (!os_dev)
 		os_dev = OS_DEFAULT_DEV;
 
-	printf("Update: bb dev: %s os dev: %s\n", bb_dev, os_dev);
+	swu_log("update: bb dev: %s os dev: %s\n", bb_dev, os_dev);
 
 	ret = swu_update_bb(bb_dev);
 
@@ -386,6 +485,10 @@ static int do_swu(int argc, char *argv[])
 	ret |= swu_update_dtb(os_dev);
 
 	ret |= swu_update_lvds_param(os_dev);
+
+	ret |= swu_switch_boot(os_dev);
+
+	swu_log("update status: %d\n", ret);
 
 	return ret;
 }
