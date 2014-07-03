@@ -57,6 +57,7 @@
 		pr_info(fmt, ##args); \
 	} while (0)
 
+
 enum prop_type {
 	NONE,
 	STR,
@@ -147,24 +148,65 @@ static int swu_hfile_status(const char *ifn)
 	return ret;
 }
 
-
 /**
- * calculate and compare hashes
+ * calculate and compare hashes between buffer and file
+ * "oh" should be freed by caller
+ * @param buf - input buffer
+ * @param bsz - input buffer size
+ * @param oh  - output hash value
+ * @return 0 on success
  */
-static int swu_check_hash(const char *ifn, const char *ofn,
-			const unsigned char *hash)
+static int swu_get_bhash(const char *buf, ulong bsz, unsigned char **oh)
 {
-	struct stat st;
+	struct digest *d;
+	ulong len = 0;
+	int now = 0, i;
+	unsigned char *hash;
+	const unsigned char *ptr = buf;
+
+	d = digest_get_by_name(DIGEST_ALG);
+	if (!d)
+		return -ENOENT;
+
+	d->init(d);
+
+	hash = calloc(d->length, sizeof(unsigned char));
+	if (hash == NULL) {
+		perror("calloc");
+		return -ENOMEM;
+	}
+
+	while (bsz) {
+		now = min((ulong)4096, bsz);
+		d->update(d, ptr, now);
+		bsz -= now;
+		len += now;
+		ptr += now;
+	}
+
+	d->final(d, hash);
+	pr_debug(">hash: ");
+	for (i = 0; i < d->length; i++)
+		pr_debug("%02x", hash[i]);
+	pr_debug("\n");
+
+	*oh = hash;
+
+	return 0;
+}
+
+
+static int swu_check_hash(const char *ofn, loff_t sz, int flag,
+		const unsigned char *hash)
+{
 	struct digest *d;
 	unsigned char *h = NULL;
 	unsigned char ref;
 	int ret, i;
 
-	ret = stat(ifn, &st);
-	if (ret != 0) {
-		pr_err("Cannot stat %s\n", ifn);
-		return -ENOENT;
-	}
+	if (!hash)
+		return -EINVAL;
+
 	d = digest_get_by_name(DIGEST_ALG);
 	if (!d)
 		return -ENOENT;
@@ -172,14 +214,18 @@ static int swu_check_hash(const char *ifn, const char *ofn,
 	h = calloc(d->length, sizeof(unsigned char));
 	if (!h) {
 		perror("calloc");
-		return COMMAND_ERROR_USAGE;
+		return -ENOMEM;
 	}
 
-	ret = digest_file_window(d, (char *)ofn, h, 0, st.st_size);
+	ret = digest_file_window(d, (char *)ofn, h, 0, sz);
 	if (ret == 0) {
 		pr_info("<hash: ");
 		for (i = 0; i < d->length; i++) {
-			ref = (ctoi(hash[2*i]) << 4) | ctoi(hash[(2*i) + 1]);
+			if (flag)
+				ref = (ctoi(hash[2*i]) << 4) |
+				       ctoi(hash[(2*i) + 1]);
+			else
+				ref = hash[i];
 			pr_debug("%02x", h[i]);
 			if (h[i] != ref)
 				break;
@@ -197,6 +243,47 @@ static int swu_check_hash(const char *ifn, const char *ofn,
 	free(h);
 
 	return ret;
+}
+
+/**
+ * calc. hash of buffer and check integrity
+ */
+int swu_check_buf_img(struct bbu_data *data, const char *ifn,  const char *ofn)
+{
+	unsigned char *hash = NULL;
+	int ret = 0;
+
+	if (swu_hfile_status(ifn)) {
+		pr_info("integrity check skipped %s.\n", ifn);
+		return 0;
+	}
+
+	if (!data->image)
+		return -EINVAL;
+
+	ret = swu_get_bhash(data->image, data->len, &hash);
+	if (ret)
+		return -EINVAL;
+
+	ret = swu_check_hash(ofn, data->len, 0, hash);
+
+	free(hash);
+
+	return ret;
+}
+
+/**
+ * calculate and compare hashes using size of ifn and md5sum in file
+ */
+static int swu_check_file_hash(const char *ifn, const char *ofn,
+			const unsigned char *hash)
+{
+	struct stat st;
+
+	if (stat(ifn, &st))
+		return -ENOENT;
+
+	return swu_check_hash(ofn, st.st_size, 1, hash);
 }
 
 /**
@@ -228,7 +315,7 @@ static int swu_check_img_hash(const char *ifn, const char *ofn)
 	hash[HASH_SZ] = '\0';
 
 	swu_log(">hash: %s\n", hash);
-	ret = swu_check_hash(ifn, ofn, hash);
+	ret = swu_check_file_hash(ifn, ofn, hash);
 
 	return ret;
 }
@@ -258,6 +345,9 @@ static int swu_check_limits(const char *ifn, const char *ofn)
 
 /**
  * start image sig check.
+ * @param ifn - input file (used to get size for hash calculation and md5 file)
+ * @param ofn - output file/device
+ * @return 0 on success
  */
 int swu_check_img(const char *ifn, const char *ofn)
 {
@@ -430,7 +520,7 @@ static int swu_check_lvds_param(void)
 	while (lvds_params[i].param) {
 		const char *param = getenv(lvds_params[i].param);
 		if (!param) {
-			pr_err("ERROR: %s not defined\n", lvds_params[i].param);
+			swu_log("ERROR: %s undefined\n", lvds_params[i].param);
 			return -EINVAL;
 		}
 		i++;
@@ -568,6 +658,7 @@ static int swu_update_prop_int(struct device_node *root,
 
 /**
  * udpate panel/display settings in OF.
+ * TODO: maybe fsl,data-mapping should not be fixed
  */
 static int swu_update_of(struct device_node *root)
 {

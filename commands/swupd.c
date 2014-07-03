@@ -32,6 +32,8 @@
 #include <environment.h>
 #include <usb/usb.h>
 #include <mach/bbu.h>
+#include <envfs.h>
+#include <i2c/i2c.h>
 
 #define BB_DEFAULT_DEV	"flash"
 #define OS_DEFAULT_DEV	"emmc"
@@ -67,6 +69,12 @@ enum img_type {
 	LVDS
 };
 
+enum led_col {
+	COL_GREEN = 0x2,
+	COL_RED = 0x8,
+	COL_NONE = 0xf,
+};
+
 struct img_data {
 	enum img_type type;
 	const char *target;
@@ -76,11 +84,11 @@ struct img_data {
 
 static struct img_data img_map[] = {
 	{BB, "flash", "spiflash", "/dev/m25p0.barebox"},
-	{BB, "emmc", "mmc", "/dev/mmc3.barebox"},
-	{BB, "sd", "mmc", "/dev/mmc2.barebox"},
+	{BB, "emmc", "mmc", "/dev/mmc3.barebox"}, /* eMMC not supported */
+	{BB, "mmc", "mmc", "/dev/mmc2.barebox"},
 	{BB_ENV, "flash", "blkdev", "/dev/m25p0.barebox-environment"},
 	{BB_ENV, "emmc", "blkdev", "/dev/mmc3.barebox-environment"},
-	{BB_ENV, "sd", "blkdev", "/dev/mmc2.barebox-environment"},
+	{BB_ENV, "mmc", "blkdev", "/dev/mmc2.barebox-environment"},
 	{OS, "emmc", "blkdev", "/dev/mmc3"},
 	{OS, "mmc", "blkdev", "/dev/mmc2"},
 	{OS, "sata", "blkdev", "/dev/sda"},
@@ -167,7 +175,8 @@ static int swu_update_bb(const char *bb_dev)
 		return -errno;
 	ret = barebox_update(&data);
 	if (!ret)
-		ret = swu_check_img(full_nm, id->target_dev);
+		/* Take partition table into account */
+		ret = swu_check_buf_img(&data, full_nm, id->target_dev);
 
 	free(data.image);
 
@@ -452,16 +461,34 @@ static void swu_init_logfile(void)
 	close(fd);
 }
 
-/**
-* mount usb stick containg thr sw images.
-* enable emmc device.
-*/
-static int swu_prepare_update(void)
+static int swu_switch_led(int reg, u8 val)
 {
-	struct device_d *dev;
-	struct stat st;
-	int ret = -EINVAL;
+	struct i2c_adapter *adapter = NULL;
+	struct i2c_client client;
+	u8 buf[16];
 
+	adapter = i2c_get_adapter(0);
+	if (!adapter) {
+		swu_log("i2c bus not found\n");
+		return -ENODEV;
+	}
+
+	client.adapter = adapter;
+	client.addr = 0x40;
+	buf[0] = val;
+	return i2c_write_reg(&client, reg, buf, 1);
+}
+
+/**
+* mount usb stick containg the sw images.
+*/
+static int swu_prepare_update(const char *bb_dev, const char *os_dev)
+{
+	struct stat st;
+	int ret = 0;
+
+	swu_switch_led(0x88, COL_NONE);
+	swu_switch_led(0x84, COL_NONE);
 	usb_rescan(1);
 
 	if (stat(USB_DISK_DEV, &st))
@@ -470,12 +497,6 @@ static int swu_prepare_update(void)
 	make_directory(USB_MNT);
 
 	ret = mount(USB_DISK_DEV, NULL, USB_MNT, "");
-	if (ret)
-		return ret;
-
-	dev = get_device_by_name("mmc3");
-	if (dev)
-		ret = dev_set_param(dev, "probe", "1");
 
 	swu_init_logfile();
 
@@ -483,19 +504,52 @@ static int swu_prepare_update(void)
 }
 
 /**
-*
+* enable emmc devices etc.
 */
-static int swu_switch_boot(const char *dev)
+static int swu_enable_devices(const char *bb_dev, const char *os_dev)
+{
+	struct device_d *dev;
+	int ret = 0;
+
+	if (!strncmp(bb_dev, "mmc", 3) || !strncmp(os_dev, "mmc", 3)) {
+		dev = get_device_by_name("mmc2");
+		if (dev)
+			ret = dev_set_param(dev, "probe", "1");
+	}
+
+	if (!strncmp(bb_dev, "emmc", 4) || !strncmp(os_dev, "emmc", 4)) {
+		dev = get_device_by_name("mmc3");
+		if (dev)
+			ret = dev_set_param(dev, "probe", "1");
+	}
+
+	return ret;
+}
+
+/**
+* switch boot device for kernel, rootfs etc.
+*/
+static int swu_switch_boot(const char *boot_dev, const char *root_dev)
 {
 	int ret = 0;
 	char tmp[PATH_MAX];
+	struct img_data *id;
 
+	swu_log("switching boot device (%s).\n", boot_dev);
 	ret = unlink(CURRENT_BOOT);
 	if (ret)
 		return ret;
 
-	snprintf(tmp, sizeof(tmp)-1, ENV_BOOT"/%s", dev);
-	return symlink(tmp, CURRENT_BOOT);
+	snprintf(tmp, sizeof(tmp)-1, ENV_BOOT"/%s", root_dev);
+	if (symlink(tmp, CURRENT_BOOT))
+		return -EPERM;
+
+	id = swu_get_img_data(BB_ENV, boot_dev);
+	if (!id)
+		return -EINVAL;
+
+	swu_log("save new env in %s\n", id->target_dev);
+	return envfs_save(id->target_dev, "/env");
 }
 
 /* Use handler instead fixed functions */
@@ -504,21 +558,22 @@ static int do_swu(int argc, char *argv[])
 	const char *bb_dev, *os_dev;
 	int ret = 0;
 
-	if (swu_prepare_update()) {
+	if (swu_prepare_update(bb_dev, os_dev)) {
 		pr_err("swu prepare failed.\n");
 		return -EPERM;
 	}
 
-	swu_log("<<< SWU START >>>\n");
+	swu_switch_led(0x82, COL_GREEN);
 
+	swu_log("<<< SWU START >>>\n");
 	if (swu_check_config_ver()) {
 		swu_log("ERROR: invalid config file version.\n");
 		return -EINVAL;
 	}
 
-	swu_log("Reading ini file\n");
-
-	swu_read_config();
+	swu_log("reading ini file\n");
+	if (swu_read_config())
+		return -EINVAL;
 
 	bb_dev = getenv("BB_TARGET_DEV");
 	if (!bb_dev)
@@ -527,6 +582,9 @@ static int do_swu(int argc, char *argv[])
 	os_dev = getenv("OS_TARGET_DEV");
 	if (!os_dev)
 		os_dev = OS_DEFAULT_DEV;
+
+	if (swu_enable_devices(bb_dev, os_dev))
+		return -EINVAL;
 
 	swu_log("update: bb dev: %s os dev: %s\n", bb_dev, os_dev);
 
@@ -544,9 +602,16 @@ static int do_swu(int argc, char *argv[])
 
 	ret |= swu_update_lvds_param(os_dev);
 
-	ret |= swu_switch_boot(os_dev);
+	ret |= swu_switch_boot(bb_dev, os_dev);
 
 	swu_log("update status: %d\n", ret);
+
+	if (ret) {
+		swu_switch_led(0x84, COL_NONE);
+		swu_switch_led(0x82, COL_RED);
+	} else {
+		swu_switch_led(0x84, COL_NONE);
+	}
 
 	return ret;
 }
@@ -558,10 +623,6 @@ BAREBOX_CMD_HELP_END
 BAREBOX_CMD_HELP_START(swu)
 BAREBOX_CMD_HELP_TEXT("Options:")
 BAREBOX_CMD_HELP_OPT("-l\t", "list registered targets")
-BAREBOX_CMD_HELP_OPT("-t TARGET", "specify data target handler name")
-BAREBOX_CMD_HELP_OPT("-d DEVICE", "write image to DEVICE")
-BAREBOX_CMD_HELP_OPT("-y\t", "autom. use 'yes' when asking confirmations")
-BAREBOX_CMD_HELP_OPT("-f LEVEL", "set force level")
 BAREBOX_CMD_HELP_END
 
 BAREBOX_CMD_START(swu)
