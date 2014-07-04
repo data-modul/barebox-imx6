@@ -204,7 +204,7 @@ static int swu_update_bb_env(const char *bb_dev)
 	if (!id)
 		return -EINVAL;
 
-	if (swu_erase_flash(id->target_dev))
+	if (!strncmp(bb_dev, "flash", 5) && swu_erase_flash(id->target_dev))
 		return -EINVAL;
 
 	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
@@ -526,6 +526,17 @@ static int swu_enable_devices(const char *bb_dev, const char *os_dev)
 	return ret;
 }
 
+static int swu_switch_boot_needed(void)
+{
+	const char *img;
+
+	img = getenv("BAREBOX_ENV");
+	if (img)
+		return 0;
+
+	return 1;
+}
+
 /**
 * switch boot device for kernel, rootfs etc.
 */
@@ -602,7 +613,8 @@ static int do_swu(int argc, char *argv[])
 
 	ret |= swu_update_lvds_param(os_dev);
 
-	ret |= swu_switch_boot(bb_dev, os_dev);
+	if (swu_switch_boot_needed())
+		ret |= swu_switch_boot(bb_dev, os_dev);
 
 	swu_log("update status: %d\n", ret);
 

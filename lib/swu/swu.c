@@ -219,18 +219,18 @@ static int swu_check_hash(const char *ofn, loff_t sz, int flag,
 
 	ret = digest_file_window(d, (char *)ofn, h, 0, sz);
 	if (ret == 0) {
-		pr_info("<hash: ");
+		swu_log("<hash: ");
 		for (i = 0; i < d->length; i++) {
 			if (flag)
 				ref = (ctoi(hash[2*i]) << 4) |
 				       ctoi(hash[(2*i) + 1]);
 			else
 				ref = hash[i];
-			pr_debug("%02x", h[i]);
+			swu_log("%02x", h[i]);
 			if (h[i] != ref)
 				break;
 		}
-		pr_debug("\n");
+		swu_log("\n");
 		if (i != d->length) {
 			swu_log("ERROR: signature check failed.\n");
 			ret = -EINVAL;
@@ -422,16 +422,13 @@ static int swu_get_dir_size(const char *ifn, loff_t *tot)
 			continue;
 
 		snprintf(tmp, sizeof(tmp)-1, SWU_MNT_PATH"%s", d->d_name);
-		if (stat(tmp, &si)) {
+		if (lstat(tmp, &si)) {
 			ret = -ENOENT;
 			break;
 		}
-
-		/* Directories not supported */
-		if (S_ISDIR(si.st_mode)) {
-			ret = -EINVAL;
-			break;
-		}
+		/* TODO: Directories not supported */
+		if (S_ISDIR(si.st_mode))
+			continue;
 		*tot += si.st_size;
 	}
 	closedir(dir);
