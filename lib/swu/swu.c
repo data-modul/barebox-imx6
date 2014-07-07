@@ -76,7 +76,7 @@ static struct lvds_param_data lvds_params[] = {
 	{"TFT_LVDS_PANEL_OUTPUT", STR, "status"},
 	{"TFT_LVDS_PANEL_BITCONFIG_COLOURMAPPING", STR, "fsl,data-mapping"},
 	{"TFT_LVDS_PANEL_BITCONFIG_SINGLE_DUAL_LINK", NONE, "fsl,dual-channel"},
-	{"TFT_LVDS_PANEL_BITCONFIG_18_24", STR, "fsl,data-width"},
+	{"TFT_LVDS_PANEL_BITCONFIG_18_24", INT, "fsl,data-width"},
 	{"TFT_LVDS_PANEL_TIMING_PIXELCLK_HZ", INT, "clock-frequency"},
 	{"TFT_LVDS_PANEL_TIMING_H_ACTIVE_LINES", INT, "hactive"},
 	{"TFT_LVDS_PANEL_TIMING_V_ACTIVE_LINES", INT, "vactive"},
@@ -546,11 +546,12 @@ static struct device_node *swu_get_lvds_node(
 		struct device_node *from,
 		const char *prop)
 {
-	struct device_node *n = from;
+	struct device_node *n;
 
+	n = of_find_node_by_name(from, "ldb@020e0008");
 	while (n) {
 		n = of_find_node_with_property(n, prop);
-		if (n && of_device_is_available(n))
+		if (n)
 			return n;
 	}
 
@@ -559,6 +560,7 @@ static struct device_node *swu_get_lvds_node(
 
 /**
  * set property with no value. now used only for single/dual channel
+ * changes needed if other usa cases are implemented
  */
 static int swu_update_prop_none(struct device_node *root,
 				struct lvds_param_data *ld, const char *v)
@@ -567,24 +569,29 @@ static int swu_update_prop_none(struct device_node *root,
 	struct property *pp = NULL;
 	int sta = strncmp(v, "0", 1);
 
-	n = swu_get_lvds_node(root, ld->prop);
+	n = of_find_node_with_property(root, ld->prop);
+
 	/* disabled and not active in DTS */
 	if (!sta && !n)
 		return 0;
+
 	/* enabled and not active in DTS */
 	if (sta && !n) {
 		n = swu_get_lvds_node(root, "fsl,data-mapping");
-		if (!n)
+		if (!n || strlen(n->name) != 14 ||
+			strncmp(n->name, "lvds-channel@0", 14))
 			return -EINVAL;
 		n = n->parent;
 		if (n)
 			of_new_property(n, ld->prop, NULL, 0);
 	}
+
 	/* disable but active in the DTS */
 	if (!sta && n) {
 		pp = of_find_property(n, ld->prop, NULL);
 		/* check for NULL ptr inside the next func */
 		of_delete_property(pp);
+		printf("Deleted prop\n");
 	}
 
 	/* enabled and active in the DTS */
@@ -606,8 +613,10 @@ static int swu_update_prop_str(struct device_node *root,
 		n = swu_get_lvds_node(root, "fsl,data-mapping");
 	else
 		n = swu_get_lvds_node(root, ld->prop);
-	if (!n)
+	if (!n || strlen(n->name) != 14 ||
+		strncmp(n->name, "lvds-channel@0", 14))
 		return -EINVAL;
+
 	pp = of_find_property(n, ld->prop, NULL);
 
 	free(pp->value);
@@ -655,16 +664,16 @@ static int swu_update_prop_int(struct device_node *root,
 
 /**
  * udpate panel/display settings in OF.
- * TODO: maybe fsl,data-mapping should not be fixed
+ * TODO: maybe ldb@.. should not be fixed
  */
 static int swu_update_of(struct device_node *root)
 {
 	int ret = 0, i = 0;
 	struct device_node *n;
 
-	n = swu_get_lvds_node(root, "fsl,data-mapping");
+	n = of_find_node_by_name(root, "ldb@020e0008");
 	if (n)
-		of_print_nodes(n->parent, 0);
+		of_print_nodes(n, 0);
 
 	while (lvds_params[i].param) {
 		struct lvds_param_data *ld = &lvds_params[i];
@@ -690,9 +699,9 @@ static int swu_update_of(struct device_node *root)
 		i++;
 	}
 
-	n = swu_get_lvds_node(root, "fsl,data-mapping");
+	n = of_find_node_by_name(root, "ldb@020e0008");
 	if (n)
-		of_print_nodes(n->parent, 0);
+		of_print_nodes(n, 0);
 
 	return ret;
 }
