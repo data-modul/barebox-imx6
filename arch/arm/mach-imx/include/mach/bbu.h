@@ -107,7 +107,7 @@ static inline int swu_register_dmo_handlers(void)
 	return -ENOSYS;
 }
 
-int swu_check_img(const char *ifn, const char *ofn)
+static inline int swu_check_img(const char *ifn, const char *ofn)
 {
 	return -ENOSYS;
 }
