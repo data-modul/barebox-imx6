@@ -91,19 +91,19 @@ static struct img_data img_map[] = {
 	{BB_ENV, "mmc", "blkdev", "/dev/mmc2.barebox-environment"},
 	{OS, "emmc", "blkdev", "/dev/mmc3"},
 	{OS, "mmc", "blkdev", "/dev/mmc2"},
-	{OS, "sata", "blkdev", "/dev/sda"},
+	{OS, "sata", "blkdev", "/dev/ata0"},
 	{ROOTFS, "emmc", "blkdev", "/dev/mmc3.1"},
 	{ROOTFS, "mmc", "blkdev", "/dev/mmc2.1"},
-	{ROOTFS, "sata", "blkdev", "/dev/sda2"},
+	{ROOTFS, "sata", "blkdev", "/dev/ata0.1"},
 	{KERNEL, "emmc", "file", "/dev/mmc3.0"},
 	{KERNEL, "mmc", "file", "/dev/mmc2.0"},
-	{KERNEL, "sata", "file", "/dev/sda1"},
+	{KERNEL, "sata", "file", "/dev/ata0.0"},
 	{DTB, "emmc", "file", "/dev/mmc3.0"},
 	{DTB, "mmc", "file", "/dev/mmc2.0"},
-	{DTB, "sata", "file", "/dev/sda1"},
+	{DTB, "sata", "file", "/dev/ata0.0"},
 	{LVDS, "emmc", "lvds", "/dev/mmc3.0"},
 	{LVDS, "mmc", "lvds", "/dev/mmc2.0"},
-	{LVDS, "sata", "lvds", "/dev/sda1"}
+	{LVDS, "sata", "lvds", "/dev/ata0.0"}
 };
 
 /**
@@ -519,6 +519,12 @@ static int swu_enable_devices(const char *bb_dev, const char *os_dev)
 
 	if (!strncmp(bb_dev, "emmc", 4) || !strncmp(os_dev, "emmc", 4)) {
 		dev = get_device_by_name("mmc3");
+		if (dev)
+			ret = dev_set_param(dev, "probe", "1");
+	}
+
+	if (!strncmp(bb_dev, "sata", 4) || !strncmp(os_dev, "sata", 4)) {
+		dev = get_device_by_name("ata0");
 		if (dev)
 			ret = dev_set_param(dev, "probe", "1");
 	}
