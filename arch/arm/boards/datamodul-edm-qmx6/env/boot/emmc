@@ -7,4 +7,4 @@ fi
 
 global.bootm.image="/mnt/emmc/zImage"
 global.bootm.oftree="/mnt/emmc/oftree"
-global.linux.bootargs.dyn.root="root=/dev/mmcblk0p2 rootfstype=ext3 rootwait"
+global.linux.bootargs.dyn.root="root=/dev/mmcblk0p2 rootwait"
