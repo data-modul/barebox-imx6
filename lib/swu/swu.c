@@ -591,7 +591,6 @@ static int swu_update_prop_none(struct device_node *root,
 		pp = of_find_property(n, ld->prop, NULL);
 		/* check for NULL ptr inside the next func */
 		of_delete_property(pp);
-		printf("Deleted prop\n");
 	}
 
 	/* enabled and active in the DTS */
