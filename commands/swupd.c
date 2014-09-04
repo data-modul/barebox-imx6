@@ -34,6 +34,7 @@
 #include <mach/bbu.h>
 #include <envfs.h>
 #include <i2c/i2c.h>
+#include <libfile.h>
 
 #define BB_DEFAULT_DEV	"flash"
 #define OS_DEFAULT_DEV	"emmc"
@@ -489,7 +490,7 @@ static int swu_prepare_update(const char *bb_dev, const char *os_dev)
 
 	swu_switch_led(0x88, COL_NONE);
 	swu_switch_led(0x84, COL_NONE);
-	usb_rescan(1);
+	usb_rescan();
 
 	if (stat(USB_DISK_DEV, &st))
 		return -ENOENT;
@@ -566,7 +567,7 @@ static int swu_switch_boot(const char *boot_dev, const char *root_dev)
 		return -EINVAL;
 
 	swu_log("save new env in %s\n", id->target_dev);
-	return envfs_save(id->target_dev, "/env");
+	return envfs_save(id->target_dev, "/env", 0);
 }
 
 /* Use handler instead fixed functions */

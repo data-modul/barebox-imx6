@@ -35,6 +35,7 @@
 #include <malloc.h>
 #include <bbu.h>
 #include <libbb.h>
+#include <libfile.h>
 #include <libgen.h>
 #include <environment.h>
 #include <digest.h>
