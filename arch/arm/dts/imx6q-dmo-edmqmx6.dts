@@ -37,11 +37,11 @@
 	};
 };
 
-&ecspi5 {
+&ecspi2 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_ecspi_5_1>;
+	pinctrl-0 = <&pinctrl_ecspi_2_1>;
 	fsl,spi-num-chipselects = <1>;
-	cs-gpios = <&gpio1 12 0>;
+	cs-gpios = <&gpio5 29 0>;
 	status = "okay";
 
 	flash: m25p80@0 {
@@ -72,13 +72,14 @@
 		};
 	};
 
-	ecspi5 {
-		pinctrl_ecspi_5_1: ecspi5rp-1 {
+	ecspi2 {
+		pinctrl_ecspi_2_1: ecspi2rp-1 {
 			fsl,pins = <
-				MX6QDL_PAD_SD1_DAT0__ECSPI5_MISO 0x80000000
-				MX6QDL_PAD_SD1_CMD__ECSPI5_MOSI  0x80000000
-				MX6QDL_PAD_SD1_CLK__ECSPI5_SCLK  0x80000000
-				MX6QDL_PAD_SD2_DAT3__GPIO1_IO12  0x80000000
+				MX6QDL_PAD_CSI0_DAT10__ECSPI2_MISO	0x80000000
+				MX6QDL_PAD_CSI0_DAT9__ECSPI2_MOSI	0x80000000
+				MX6QDL_PAD_CSI0_DAT8__ECSPI2_SCLK	0x80000000
+				/* CS */
+				MX6QDL_PAD_CSI0_DAT11__GPIO5_IO29	0x80000000
 			>;
 		};
 	};
