@@ -51,6 +51,7 @@ config STMP_DEVICE
 	bool
 
 config DMO_SWU
+	depends on USB_HOST && USB_IMX_CHIPIDEA && USB_EHCI && USB_STORAGE
 	bool "include DMO softwae update"
 
 source lib/gui/Kconfig

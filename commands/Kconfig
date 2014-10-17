@@ -2000,6 +2000,7 @@ config CMD_TIME
 
 config CMD_SWU
 	tristate
+	depends on USB_HOST && USB_IMX_CHIPIDEA && USB_EHCI && USB_STORAGE
 	select DMO_SWU
 	prompt "swu"
 	help
