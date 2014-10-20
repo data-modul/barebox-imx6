@@ -57,5 +57,5 @@ ENTRY_FUNCTION(start_imx6_realq7, r0, r1, r2)
 
 	fdt = __dtb_imx6q_dmo_edmqmx6_start - get_runtime_offset();
 
-	barebox_arm_entry(sdram, SZ_2G, fdt);
+	barebox_arm_entry(sdram, SZ_1G, fdt);
 }
