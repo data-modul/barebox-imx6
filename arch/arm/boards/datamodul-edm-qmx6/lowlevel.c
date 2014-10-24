@@ -44,7 +44,7 @@ static void uart_init(void)
 
 extern char __dtb_imx6q_dmo_edmqmx6_start[];
 
-ENTRY_FUNCTION(start_imx6_realq7, r0, r1, r2)
+ENTRY_FUNCTION(start_imx6q_realq7, r0, r1, r2)
 {
 	unsigned long sdram = 0x10000000;
 	void *fdt;
