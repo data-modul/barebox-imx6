@@ -46,7 +46,7 @@
 #define HASH_SZ			32
 #define DIGEST_ALG		"md5"
 
-#define LOGFILE		"/mnt/disk/update.log"
+#define LOGFILE		".update.log.tmp"
 #define swu_log(fmt, args...) \
 	do { \
 		int fd; \

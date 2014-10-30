@@ -47,8 +47,8 @@
 #define BUFSIZE		1024
 #define NM_LEN		128
 
-
-#define LOGFILE		"/mnt/disk/update.log"
+#define USBFILE		"/mnt/disk/update.log"
+#define LOGFILE		".update.log.tmp"
 #define swu_log(fmt, args...) \
 	do { \
 		int fd; \
@@ -624,6 +624,11 @@ static int do_swu(int argc, char *argv[])
 		ret |= swu_switch_boot(bb_dev, os_dev);
 
 	swu_log("update status: %d\n", ret);
+
+	pr_info("copy log file to usb...\n");
+	if (copy_file(LOGFILE, USBFILE, 0)) {
+		pr_err("ERROR: copying log file to usb stick failed!\n");
+	}
 
 	if (ret) {
 		swu_switch_led(0x84, COL_NONE);
