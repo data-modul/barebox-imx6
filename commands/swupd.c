@@ -41,6 +41,7 @@
 #define CURRENT_BOOT	"/env/boot/current_boot"
 #define ENV_BOOT	"/env/boot"
 #define USB_DISK_DEV	"/dev/disk0.0"
+#define _USB_DISK_DEV_0	"/dev/disk0"
 #define USB_MNT		"/mnt/disk"
 #define INIFILE		USB_MNT"/inifile"
 #define SWU_CONF_VER	"0.1"
@@ -492,13 +493,17 @@ static int swu_prepare_update(const char *bb_dev, const char *os_dev)
 	swu_switch_led(0x84, COL_NONE);
 	usb_rescan();
 
-	if (stat(USB_DISK_DEV, &st))
-		return -ENOENT;
+	pr_info("mounting usb media...\n");
 
 	make_directory(USB_MNT);
 
 	ret = mount(USB_DISK_DEV, NULL, USB_MNT, "");
-
+	if (ret) {
+		pr_info("mount %s failed. trying %s...\n",
+			 USB_DISK_DEV,
+			 _USB_DISK_DEV_0);
+		ret = mount(_USB_DISK_DEV_0, NULL, USB_MNT, "");
+	}
 	swu_init_logfile();
 
 	return ret;
@@ -629,6 +634,9 @@ static int do_swu(int argc, char *argv[])
 	if (copy_file(LOGFILE, USBFILE, 0)) {
 		pr_err("ERROR: copying log file to usb stick failed!\n");
 	}
+
+	if (umount(USB_MNT))
+		pr_err("umount usb failed.\n");
 
 	if (ret) {
 		swu_switch_led(0x84, COL_NONE);
