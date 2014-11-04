@@ -486,7 +486,6 @@ static int swu_switch_led(int reg, u8 val)
 */
 static int swu_prepare_update(const char *bb_dev, const char *os_dev)
 {
-	struct stat st;
 	int ret = 0;
 
 	swu_switch_led(0x88, COL_NONE);
@@ -575,10 +574,17 @@ static int swu_switch_boot(const char *boot_dev, const char *root_dev)
 	return envfs_save(id->target_dev, "/env", 0);
 }
 
+static void copy_log(void)
+{
+	pr_info("copy log file to usb...\n");
+	if (copy_file(LOGFILE, USBFILE, 0))
+		pr_err("ERR: copying log file to usb stick failed!\n");
+}
+
 /* Use handler instead fixed functions */
 static int do_swu(int argc, char *argv[])
 {
-	const char *bb_dev, *os_dev;
+	const char *bb_dev, *os_dev, *log;
 	int ret = 0;
 
 	if (swu_prepare_update(bb_dev, os_dev)) {
@@ -630,10 +636,9 @@ static int do_swu(int argc, char *argv[])
 
 	swu_log("update status: %d\n", ret);
 
-	pr_info("copy log file to usb...\n");
-	if (copy_file(LOGFILE, USBFILE, 0)) {
-		pr_err("ERROR: copying log file to usb stick failed!\n");
-	}
+	log = getenv("LOGGING");
+	if (log)
+		copy_log();
 
 	if (umount(USB_MNT))
 		pr_err("umount usb failed.\n");
