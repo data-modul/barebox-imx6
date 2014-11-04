@@ -469,7 +469,7 @@ static int swu_switch_led(int reg, u8 val)
 	struct i2c_client client;
 	u8 buf[16];
 
-	adapter = i2c_get_adapter(0);
+	adapter = i2c_get_adapter(1);
 	if (!adapter) {
 		swu_log("i2c bus not found\n");
 		return -ENODEV;
@@ -643,11 +643,16 @@ static int do_swu(int argc, char *argv[])
 	if (umount(USB_MNT))
 		pr_err("umount usb failed.\n");
 
-	if (ret) {
+	pr_info("please remove usb media and reset the board.");
+	while(1) {
+		if (ret) {
+			swu_switch_led(0x82, COL_RED);
+		} else {
+			swu_switch_led(0x82, COL_GREEN);
+		}
+		mdelay(500);
 		swu_switch_led(0x84, COL_NONE);
-		swu_switch_led(0x82, COL_RED);
-	} else {
-		swu_switch_led(0x84, COL_NONE);
+		mdelay(500);
 	}
 
 	return ret;
