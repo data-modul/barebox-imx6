@@ -1,6 +1,4 @@
 /*
- * Copyright (c) 2011 Peter Korsgaard <jacmet@sunsite.dk>
- *
  * Copyright (c) 2014 Zahari Doychev <zahari.doychev@linux.com>, Data Modul AG
  *
  * See file CREDITS for list of people who contributed to this
@@ -22,8 +20,6 @@
  * @brief Implements DMO update handlers
  */
 
-#define DEBUG
-
 #include <common.h>
 #include <command.h>
 #include <fs.h>
@@ -39,6 +35,7 @@
 #include <libgen.h>
 #include <environment.h>
 #include <digest.h>
+#include <globalvar.h>
 
 #define SWU_MNT_PATH		"/tmp/swu/"
 #define BBU_FLAGS_VERBOSE	(1 << 31)
@@ -57,7 +54,6 @@
 		} \
 		pr_info(fmt, ##args); \
 	} while (0)
-
 
 enum prop_type {
 	NONE,
@@ -809,13 +805,18 @@ static int swu_register_lvds_handler(void)
  */
 int swu_register_dmo_handlers(void)
 {
+	int rv;
+
 	pr_debug("installing swu handlers\n");
 
-	swu_register_blk_dev_handler();
+	rv = swu_register_blk_dev_handler();
 
-	swu_register_file_handler();
+	rv |= swu_register_file_handler();
 
-	swu_register_lvds_handler();
+	rv |= swu_register_lvds_handler();
+
+	if (!rv)
+		globalvar_add_simple("swu.enabled", "1");
 
 	return 0;
 }

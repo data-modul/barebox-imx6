@@ -471,7 +471,7 @@ static int swu_switch_led(int reg, u8 val)
 
 	adapter = i2c_get_adapter(1);
 	if (!adapter) {
-		swu_log("i2c bus not found\n");
+		pr_debug("i2c bus not found\n");
 		return -ENODEV;
 	}
 
