@@ -110,9 +110,10 @@ static int realq7_env_init(void)
 	imx6_bbu_internal_spi_i2c_register_handler("spiflash", "/dev/m25p0.barebox",
 		BBU_HANDLER_FLAG_DEFAULT);
 	imx6_bbu_internal_mmc_register_handler("mmc", "/dev/mmc3.barebox", 0);
-#if defined(CONFIG_DMO_SWU)	
-	swu_register_dmo_handlers();
-#endif
+
+	if (IS_ENABLED(CONFIG_DMO_SWU))	
+		swu_register_dmo_handlers();
+
 	return 0;
 }
 late_initcall(realq7_env_init);
