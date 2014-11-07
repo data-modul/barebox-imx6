@@ -588,8 +588,8 @@ static int do_swu(int argc, char *argv[])
 	int ret = 0;
 
 	if (swu_prepare_update(bb_dev, os_dev)) {
-		pr_err("swu prepare failed.\n");
-		return -EPERM;
+		pr_info("swu: no update media found.\n");
+		return 0;
 	}
 
 	swu_switch_led(0x82, COL_GREEN);
