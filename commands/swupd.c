@@ -545,6 +545,10 @@ static int swu_switch_boot_needed(void)
 	if (img)
 		return 0;
 
+	img = getenv("TFT_LVDS_PANEL_MODIFY_PARAMETER");
+	if (img)
+		return 0;
+
 	return 1;
 }
 
