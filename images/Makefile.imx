@@ -65,10 +65,15 @@ FILE_barebox-tq-mba53-1gib.img = start_imx53_mba53_1gib.pblx.imximg
 image-$(CONFIG_MACH_TQMA53) += barebox-tq-mba53-1gib.img
 
 # ----------------------- i.MX6 based boards ---------------------------
-pblx-$(CONFIG_MACH_REALQ7) += start_imx6_realq7
-CFG_start_imx6_realq7.pblx.imximg = $(board)/datamodul-edm-qmx6/flash-header.imxcfg
-FILE_barebox-datamodul-edm-qmx6.img = start_imx6_realq7.pblx.imximg
-image-$(CONFIG_MACH_REALQ7) += barebox-datamodul-edm-qmx6.img
+pblx-$(CONFIG_MACH_REALQ7) += start_imx6q_realq7
+CFG_start_imx6q_realq7.pblx.imximg = $(board)/datamodul-edm-qmx6/flash-header-edmqmx6-q-d.imxcfg
+FILE_barebox-datamodul-edm-qmx6q.img = start_imx6q_realq7.pblx.imximg
+image-$(CONFIG_MACH_REALQ7) += barebox-datamodul-edm-qmx6q.img
+
+pblx-$(CONFIG_MACH_REALQ7) += start_imx6dl_realq7
+CFG_start_imx6dl_realq7.pblx.imximg = $(board)/datamodul-edm-qmx6/flash-header-edmqmx6-dl.imxcfg
+FILE_barebox-datamodul-edm-qmx6dl.img = start_imx6dl_realq7.pblx.imximg
+image-$(CONFIG_MACH_REALQ7) += barebox-datamodul-edm-qmx6dl.img
 
 pblx-$(CONFIG_MACH_GUF_SANTARO) += start_imx6q_guf_santaro
 CFG_start_imx6q_guf_santaro.pblx.imximg = $(board)/guf-santaro/flash-header.imxcfg

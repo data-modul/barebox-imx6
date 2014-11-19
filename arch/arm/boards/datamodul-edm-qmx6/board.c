@@ -43,6 +43,36 @@
 #include <mach/imx6.h>
 #include <mach/bbu.h>
 
+#define  MX6DL_PAD_RGMII_RXC__GPIO_6_30					       \
+		(_MX6DL_PAD_RGMII_RXC__GPIO_6_30 | MUX_PAD_CTRL(NO_PAD_CTRL))
+#define  MX6DL_PAD_RGMII_RD0__GPIO_6_25					       \
+		(_MX6DL_PAD_RGMII_RD0__GPIO_6_25 | MUX_PAD_CTRL(NO_PAD_CTRL))
+#define  MX6DL_PAD_RGMII_RD1__GPIO_6_27					       \
+		(_MX6DL_PAD_RGMII_RD1__GPIO_6_27 | MUX_PAD_CTRL(NO_PAD_CTRL))
+#define  MX6DL_PAD_RGMII_RD2__GPIO_6_28					       \
+		(_MX6DL_PAD_RGMII_RD2__GPIO_6_28 | MUX_PAD_CTRL(NO_PAD_CTRL))
+#define  MX6DL_PAD_RGMII_RD3__GPIO_6_29					       \
+		(_MX6DL_PAD_RGMII_RD3__GPIO_6_29 | MUX_PAD_CTRL(NO_PAD_CTRL))
+#define  MX6DL_PAD_RGMII_RX_CTL__GPIO_6_24				       \
+		(_MX6DL_PAD_RGMII_RX_CTL__GPIO_6_24 | MUX_PAD_CTRL(NO_PAD_CTRL))
+#define  MX6DL_PAD_ENET_CRS_DV__GPIO_1_25				       \
+		(_MX6DL_PAD_ENET_CRS_DV__GPIO_1_25 | MUX_PAD_CTRL(NO_PAD_CTRL))
+
+#define _MX6DL_PAD_RGMII_RXC__GPIO_6_30                                        \
+		IOMUX_PAD(0x6a8, 0x2c0, 5, 0x0000, 0, 0)
+#define _MX6DL_PAD_RGMII_RD0__GPIO_6_25                                        \
+		IOMUX_PAD(0x0694, 0x02ac, 5, 0x0000, 0, 0)
+#define _MX6DL_PAD_RGMII_RD1__GPIO_6_27                                        \
+		IOMUX_PAD(0x0698, 0x02b0, 5, 0x0000, 0, 0)
+#define _MX6DL_PAD_RGMII_RD2__GPIO_6_28                                        \
+		IOMUX_PAD(0x069c, 0x02b4, 5, 0x0000, 0, 0)
+#define _MX6DL_PAD_RGMII_RD3__GPIO_6_29                                        \
+		IOMUX_PAD(0x06a0, 0x02b8, 5, 0x0000, 0, 0)
+#define _MX6DL_PAD_RGMII_RX_CTL__GPIO_6_24                                     \
+		IOMUX_PAD(0x06a4, 0x02bc, 5, 0x0000, 0, 0)
+#define _MX6DL_PAD_ENET_CRS_DV__GPIO_1_25                                      \
+		IOMUX_PAD(0x05b4, 0x01e4, 5, 0x0000, 0, 0)
+
 #define RQ7_GPIO_ENET_PHYADD2	IMX_GPIO_NR(6, 30)
 #define RQ7_GPIO_ENET_MODE0	IMX_GPIO_NR(6, 25)
 #define RQ7_GPIO_ENET_MODE1	IMX_GPIO_NR(6, 27)
@@ -61,6 +91,16 @@ static iomux_v3_cfg_t realq7_pads_gpio[] = {
 	MX6Q_PAD_ENET_CRS_DV__GPIO_1_25,
 };
 
+static iomux_v3_cfg_t realq7dl_pads_gpio[] = {
+	MX6DL_PAD_RGMII_RXC__GPIO_6_30,
+	MX6DL_PAD_RGMII_RD0__GPIO_6_25,
+	MX6DL_PAD_RGMII_RD1__GPIO_6_27,
+	MX6DL_PAD_RGMII_RD2__GPIO_6_28,
+	MX6DL_PAD_RGMII_RD3__GPIO_6_29,
+	MX6DL_PAD_RGMII_RX_CTL__GPIO_6_24,
+	MX6DL_PAD_ENET_CRS_DV__GPIO_1_25,
+};
+
 static int ksz9031rn_phy_fixup(struct phy_device *dev)
 {
 	/*
@@ -76,10 +116,23 @@ static int ksz9031rn_phy_fixup(struct phy_device *dev)
 
 static int realq7_enet_init(void)
 {
-	if (!of_machine_is_compatible("dmo,imx6q-edmqmx6"))
+	if (! ( of_machine_is_compatible("dmo,imx6q-edmqmx6") ||
+		of_machine_is_compatible("dmo,imx6dl-edmqmx6")) )
 		return 0;
 
-	mxc_iomux_v3_setup_multiple_pads(realq7_pads_gpio, ARRAY_SIZE(realq7_pads_gpio));
+	switch(imx6_cpu_type()) {
+	case IMX6_CPUTYPE_IMX6Q:
+	case IMX6_CPUTYPE_IMX6D:
+		mxc_iomux_v3_setup_multiple_pads(realq7_pads_gpio,
+					 ARRAY_SIZE(realq7_pads_gpio));
+		break;
+	case IMX6_CPUTYPE_IMX6DL:
+	case IMX6_CPUTYPE_IMX6S:
+		mxc_iomux_v3_setup_multiple_pads(realq7dl_pads_gpio,
+					 ARRAY_SIZE(realq7dl_pads_gpio));
+		break;
+	}
+
 	gpio_direction_output(RQ7_GPIO_ENET_PHYADD2, 0);
 	gpio_direction_output(RQ7_GPIO_ENET_MODE0, 1);
 	gpio_direction_output(RQ7_GPIO_ENET_MODE1, 1);
@@ -104,7 +157,8 @@ fs_initcall(realq7_enet_init);
 
 static int realq7_env_init(void)
 {
-	if (!of_machine_is_compatible("dmo,imx6q-edmqmx6"))
+	if (! ( of_machine_is_compatible("dmo,imx6q-edmqmx6") ||
+		of_machine_is_compatible("dmo,imx6dl-edmqmx6")) )
 		return 0;
 
 	imx6_bbu_internal_spi_i2c_register_handler("spiflash", "/dev/m25p0.barebox",
@@ -116,7 +170,8 @@ late_initcall(realq7_env_init);
 
 static int realq7_device_init(void)
 {
-	if (!of_machine_is_compatible("dmo,imx6q-edmqmx6"))
+	if (! ( of_machine_is_compatible("dmo,imx6q-edmqmx6") ||
+		of_machine_is_compatible("dmo,imx6dl-edmqmx6")) )
 		return 0;
 
 	gpio_direction_output(IMX_GPIO_NR(2, 22), 1);
