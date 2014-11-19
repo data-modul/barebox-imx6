@@ -141,6 +141,9 @@ static int realq7_device_init(void)
 
 	barebox_set_hostname("eDM-QMX6");
 
+	/* enable usb hub */
+	gpio_direction_output(IMX_GPIO_NR(3, 31), 1);
+
 	return 0;
 }
 device_initcall(realq7_device_init);
