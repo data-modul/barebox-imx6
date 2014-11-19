@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ "$1" = menu ]; then
+	boot-menu-add-entry "$0" "MMC"
+	exit
+fi
+
+global.bootm.image="/mnt/ata/zImage"
+global.bootm.oftree="/mnt/ata/oftree"
+global.linux.bootargs.dyn.root="root=/dev/sda2 rootwait"

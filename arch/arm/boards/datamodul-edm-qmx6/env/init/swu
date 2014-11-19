@@ -1,0 +1,5 @@
+#!/bin/sh
+
+if [ -n "${global.swu.enabled}" -a "${global.swu.enabled}" = "1" ]; then
+	swu
+fi
