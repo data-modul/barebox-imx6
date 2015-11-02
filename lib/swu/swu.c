@@ -161,11 +161,11 @@ static int swu_get_bhash(const char *buf, ulong bsz, unsigned char **oh)
 	unsigned char *hash;
 	const unsigned char *ptr = buf;
 
-	d = digest_get_by_name(DIGEST_ALG);
+	d = digest_alloc(DIGEST_ALG);
 	if (!d)
 		return -ENOENT;
 
-	d->init(d);
+	digest_init(d);
 
 	hash = calloc(d->length, sizeof(unsigned char));
 	if (hash == NULL) {
@@ -175,19 +175,21 @@ static int swu_get_bhash(const char *buf, ulong bsz, unsigned char **oh)
 
 	while (bsz) {
 		now = min((ulong)4096, bsz);
-		d->update(d, ptr, now);
+		digest_update(d, ptr, now);
 		bsz -= now;
 		len += now;
 		ptr += now;
 	}
 
-	d->final(d, hash);
+	digest_final(d, hash);
 	pr_debug(">hash: ");
 	for (i = 0; i < d->length; i++)
 		pr_debug("%02x", hash[i]);
 	pr_debug("\n");
 
 	*oh = hash;
+
+	digest_free(d);
 
 	return 0;
 }
@@ -204,7 +206,7 @@ static int swu_check_hash(const char *ofn, loff_t sz, int flag,
 	if (!hash)
 		return -EINVAL;
 
-	d = digest_get_by_name(DIGEST_ALG);
+	d = digest_alloc(DIGEST_ALG);
 	if (!d)
 		return -ENOENT;
 
@@ -214,7 +216,7 @@ static int swu_check_hash(const char *ofn, loff_t sz, int flag,
 		return -ENOMEM;
 	}
 
-	ret = digest_file_window(d, (char *)ofn, h, 0, sz);
+	ret = digest_file_window(d, ofn, h, NULL, 0, sz);
 	if (ret == 0) {
 		swu_log("<hash: ");
 		for (i = 0; i < d->length; i++) {
@@ -288,14 +290,9 @@ static int swu_check_file_hash(const char *ifn, const char *ofn,
  */
 static int swu_check_img_hash(const char *ifn, const char *ofn)
 {
-	struct digest *d;
 	char hashfile[PATH_MAX];
 	int fd, ret;
 	char hash[HASH_SZ+2];
-
-	d = digest_get_by_name(DIGEST_ALG);
-	if (!d)
-		return -EINVAL;
 
 	snprintf(hashfile, sizeof(hashfile)-1, "%s.md5sum", ifn);
 	fd = open(hashfile, O_RDONLY);
