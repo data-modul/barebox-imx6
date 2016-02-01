@@ -161,6 +161,7 @@ static int swu_get_bhash(const char *buf, ulong bsz, unsigned char **oh)
 	int now = 0, i;
 	unsigned char *hash;
 	const unsigned char *ptr = buf;
+	unsigned int dlength;
 
 	d = digest_alloc(DIGEST_ALG);
 	if (!d)
@@ -168,7 +169,8 @@ static int swu_get_bhash(const char *buf, ulong bsz, unsigned char **oh)
 
 	digest_init(d);
 
-	hash = calloc(d->length, sizeof(unsigned char));
+	dlength=digest_length(d);
+	hash = calloc(dlength, sizeof(unsigned char));
 	if (hash == NULL) {
 		perror("calloc");
 		return -ENOMEM;
@@ -184,7 +186,7 @@ static int swu_get_bhash(const char *buf, ulong bsz, unsigned char **oh)
 
 	digest_final(d, hash);
 	pr_debug(">hash: ");
-	for (i = 0; i < d->length; i++)
+	for (i = 0; i < dlength; i++)
 		pr_debug("%02x", hash[i]);
 	pr_debug("\n");
 
@@ -203,6 +205,7 @@ static int swu_check_hash(const char *ofn, loff_t sz, int flag,
 	unsigned char *h = NULL;
 	unsigned char ref;
 	int ret, i;
+	unsigned int dlength;
 
 	if (!hash)
 		return -EINVAL;
@@ -211,7 +214,8 @@ static int swu_check_hash(const char *ofn, loff_t sz, int flag,
 	if (!d)
 		return -ENOENT;
 
-	h = calloc(d->length, sizeof(unsigned char));
+	dlength=digest_length(d);
+	h = calloc(dlength, sizeof(unsigned char));
 	if (!h) {
 		perror("calloc");
 		return -ENOMEM;
@@ -220,7 +224,7 @@ static int swu_check_hash(const char *ofn, loff_t sz, int flag,
 	ret = digest_file_window(d, ofn, h, NULL, 0, sz);
 	if (ret == 0) {
 		swu_log("<hash: ");
-		for (i = 0; i < d->length; i++) {
+		for (i = 0; i < dlength; i++) {
 			if (flag)
 				ref = (ctoi(hash[2*i]) << 4) |
 				       ctoi(hash[(2*i) + 1]);
@@ -231,7 +235,7 @@ static int swu_check_hash(const char *ofn, loff_t sz, int flag,
 				break;
 		}
 		swu_log("\n");
-		if (i != d->length) {
+		if (i != dlength) {
 			swu_log("ERROR: signature check failed.\n");
 			ret = -EINVAL;
 		} else {
