@@ -231,12 +231,12 @@ static int swu_update_os_full(const char *os_dev)
 	const char *img;
 	char full_nm[NM_LEN];
 	struct img_data *id;
-	struct bbu_data data = { .flags = 0 };
+	struct bbu_data data = { .flags = 0x1 /* be verbose */ };
 	int ret = 0;
 
 	img = getenv("FULL_IMAGE");
 	if (!img)
-		return ret;
+		return -ENOENT;
 
 	id = swu_get_img_data(OS, os_dev);
 	if (!id)
@@ -369,6 +369,21 @@ static int swu_update_lvds_param(const char *os_dev)
 	if (ret)
 		pr_err("ERROR: lvds parameter update failed.\n");
 
+	return ret;
+}
+
+/* Update full image or individual fs */
+static int swu_update_fs(const char *os_dev)
+{
+	int ret = 0;
+	ret |= swu_update_os_full(os_dev);
+	if (ret < 0) {
+		ret = 0;
+		ret |= swu_update_rootfs(os_dev);
+		ret |= swu_update_kernel(os_dev);
+		ret |= swu_update_dtb(os_dev);
+		ret |= swu_update_lvds_param(os_dev);
+	}
 	return ret;
 }
 
@@ -609,15 +624,7 @@ static int do_swu(int argc, char *argv[])
 
 	ret |= swu_update_bb_env(bb_dev);
 
-	ret |= swu_update_os_full(os_dev);
-
-	ret |= swu_update_rootfs(os_dev);
-
-	ret |= swu_update_kernel(os_dev);
-
-	ret |= swu_update_dtb(os_dev);
-
-	ret |= swu_update_lvds_param(os_dev);
+	ret |= swu_update_fs(os_dev);
 
 	if (swu_switch_boot_needed())
 		ret |= swu_switch_boot(bb_dev, os_dev);
