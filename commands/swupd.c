@@ -71,12 +71,6 @@ enum img_type {
 	LVDS
 };
 
-enum led_col {
-	COL_GREEN = 0x2,
-	COL_RED = 0x8,
-	COL_NONE = 0xf,
-};
-
 struct img_data {
 	enum img_type type;
 	const char *target;
@@ -107,6 +101,15 @@ static struct img_data img_map[] = {
 	{LVDS, "mmc", "lvds", "/dev/mmc2.0"},
 	{LVDS, "sata", "lvds", "/dev/ata0.0"}
 };
+
+static int swu_update_status(int status)
+{
+	struct swu_hook *local = swu_get_hook();
+	if (!local) /* no update status is provided by board */
+		return -ENOSYS;
+	local->status = status;
+	return local->func(local);
+}
 
 /**
 * find update image data using type and target dev
@@ -463,24 +466,6 @@ static void swu_init_logfile(void)
 	close(fd);
 }
 
-static int swu_switch_led(int reg, u8 val)
-{
-	struct i2c_adapter *adapter = NULL;
-	struct i2c_client client;
-	u8 buf[16];
-
-	adapter = i2c_get_adapter(1);
-	if (!adapter) {
-		pr_debug("i2c bus not found\n");
-		return -ENODEV;
-	}
-
-	client.adapter = adapter;
-	client.addr = 0x40;
-	buf[0] = val;
-	return i2c_write_reg(&client, reg, buf, 1);
-}
-
 /**
 * mount usb stick containg the sw images.
 */
@@ -488,8 +473,7 @@ static int swu_prepare_update(const char *bb_dev, const char *os_dev)
 {
 	int ret = 0;
 
-	swu_switch_led(0x88, COL_NONE);
-	swu_switch_led(0x84, COL_NONE);
+	swu_update_status(PREPARATION);
 	usb_rescan();
 
 	pr_info("mounting usb media...\n");
@@ -596,7 +580,7 @@ static int do_swu(int argc, char *argv[])
 		return 0;
 	}
 
-	swu_switch_led(0x82, COL_GREEN);
+	swu_update_status(PROGRESS);
 
 	swu_log("<<< SWU START >>>\n");
 	if (swu_check_config_ver()) {
@@ -648,16 +632,10 @@ static int do_swu(int argc, char *argv[])
 		pr_err("umount usb failed.\n");
 
 	pr_info("please remove usb media and reset the board.");
-	while(1) {
-		if (ret) {
-			swu_switch_led(0x82, COL_RED);
-		} else {
-			swu_switch_led(0x82, COL_GREEN);
-		}
-		mdelay(500);
-		swu_switch_led(0x84, COL_NONE);
-		mdelay(500);
-	}
+	if (ret)
+		swu_update_status(FAIL);
+	else
+		swu_update_status(SUCCESS);
 
 	return ret;
 }

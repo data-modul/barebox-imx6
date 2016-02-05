@@ -88,6 +88,7 @@ static struct lvds_param_data lvds_params[] = {
 	{NULL, NONE, NULL}
 };
 
+static struct swu_hook *status_hook;
 
 static int ctoi(char character)
 {
@@ -816,4 +817,18 @@ int swu_register_dmo_handlers(void)
 		globalvar_add_simple("swu.enabled", "1");
 
 	return 0;
+}
+
+/* register swu hook */
+int swu_register_hook(struct swu_hook *h)
+{
+	if (status_hook)
+		return -EADDRNOTAVAIL;
+	status_hook = h;
+	return 0;
+}
+
+struct swu_hook* swu_get_hook(void)
+{
+	return status_hook;
 }

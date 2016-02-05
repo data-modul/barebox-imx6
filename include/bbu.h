@@ -31,6 +31,18 @@ struct bbu_handler {
 	const char *devicefile;
 };
 
+enum swu_status {
+	PROGRESS,
+	SUCCESS,
+	FAIL,
+	PREPARATION
+};
+
+struct swu_hook {
+	int (*func)(struct swu_hook *);
+	enum swu_status status;
+};
+
 int bbu_force(struct bbu_data *, const char *fmt, ...)
 	__attribute__ ((format(__printf__, 2, 3)));
 
@@ -77,4 +89,6 @@ static inline int imx28_bbu_nand_register_handler(const char *name, unsigned lon
 }
 #endif
 
+int swu_register_hook(struct swu_hook *h);
+struct swu_hook *swu_get_hook(void);
 #endif /* __INCLUDE_BBU_H */
