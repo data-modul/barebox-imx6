@@ -35,10 +35,10 @@
 #include <envfs.h>
 #include <i2c/i2c.h>
 #include <libfile.h>
+#include <globalvar.h>
 
 #define BB_DEFAULT_DEV	"flash"
 #define OS_DEFAULT_DEV	"emmc"
-#define CURRENT_BOOT	"/env/boot/current_boot"
 #define ENV_BOOT	"/env/boot"
 #define USB_DISK_DEV	"/dev/disk0.0"
 #define _USB_DISK_DEV_0	"/dev/disk0"
@@ -556,17 +556,11 @@ static int swu_switch_boot_needed(void)
 */
 static int swu_switch_boot(const char *boot_dev, const char *root_dev)
 {
-	int ret = 0;
-	char tmp[PATH_MAX];
 	struct img_data *id;
 
 	swu_log("switching boot device (%s).\n", boot_dev);
-	ret = unlink(CURRENT_BOOT);
-	if (ret)
-		return ret;
 
-	snprintf(tmp, sizeof(tmp)-1, ENV_BOOT"/%s", root_dev);
-	if (symlink(tmp, CURRENT_BOOT))
+	if(nvvar_add("boot.default", root_dev))
 		return -EPERM;
 
 	id = swu_get_img_data(BB_ENV, boot_dev);
