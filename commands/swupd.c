@@ -233,6 +233,27 @@ static int swu_update_bb_env(const char *bb_dev)
 }
 
 /**
+* update via script
+*/
+static int swu_update_script(void)
+{
+	const char *img;
+	char full_nm[256] = {'\0'};
+	int ret = 0;
+
+	img = getenv("SCRIPT");
+	if (!img)
+		return ret;
+
+	swu_log("Script executing...\n");
+	sprintf(full_nm,USB_MNT"/%s",img);
+	ret = run_command(full_nm);
+	swu_log("update via script status: %d\n", ret);
+
+	return ret;
+}
+
+/**
 * completely update os target device
 */
 static int swu_update_os_full(const char *os_dev)
@@ -382,6 +403,7 @@ static int swu_update_fs(const char *os_dev)
 		ret |= swu_update_kernel(os_dev);
 		ret |= swu_update_dtb(os_dev);
 		ret |= swu_update_lvds_param(os_dev);
+		ret |= swu_update_script();
 	}
 	return ret;
 }
@@ -543,6 +565,10 @@ static int swu_switch_boot_needed(void)
 		return 0;
 
 	img = getenv("TFT_LVDS_PANEL_MODIFY_PARAMETER");
+	if (img)
+		return 0;
+
+	img = getenv("SCRIPT");
 	if (img)
 		return 0;
 
