@@ -37,16 +37,17 @@
 #include <libfile.h>
 #include <globalvar.h>
 
-#define BB_DEFAULT_DEV	"flash"
-#define OS_DEFAULT_DEV	"emmc"
+#define BB_DEFAULT_DEV	"m25p0"
+#define OS_DEFAULT_DEV	"mmc3"
 #define ENV_BOOT	"/env/boot"
 #define USB_DISK_DEV	"/dev/disk0.0"
 #define _USB_DISK_DEV_0	"/dev/disk0"
 #define USB_MNT		"/mnt/disk"
 #define INIFILE		USB_MNT"/inifile"
-#define SWU_CONF_VER	"0.1"
+#define SWU_CONF_VER	"0.2"
 #define BUFSIZE		1024
 #define NM_LEN		128
+#define DEV	"/dev/"
 
 #define USBFILE		"/mnt/disk/update.log"
 #define LOGFILE		".update.log.tmp"
@@ -61,46 +62,11 @@
 		pr_info(fmt, ##args); \
 	} while (0)
 
-enum img_type {
-	BB,
-	BB_ENV,
-	OS,
-	ROOTFS,
-	KERNEL,
-	DTB,
-	LVDS
-};
-
-struct img_data {
-	enum img_type type;
-	const char *target;
-	const char *handler_name;
-	const char *target_dev;
-};
-
-static struct img_data img_map[] = {
-	{BB, "flash", "spiflash", "/dev/m25p0.barebox"},
-	{BB, "emmc", "mmc", "/dev/mmc3.barebox"}, /* eMMC not supported */
-	{BB, "mmc", "mmc", "/dev/mmc2.barebox"},
-	{BB_ENV, "flash", "blkdev", "/dev/m25p0.barebox-environment"},
-	{BB_ENV, "emmc", "blkdev", "/dev/mmc3.barebox-environment"},
-	{BB_ENV, "mmc", "blkdev", "/dev/mmc2.barebox-environment"},
-	{OS, "emmc", "blkdev", "/dev/mmc3"},
-	{OS, "mmc", "blkdev", "/dev/mmc2"},
-	{OS, "sata", "blkdev", "/dev/ata0"},
-	{ROOTFS, "emmc", "blkdev", "/dev/mmc3.1"},
-	{ROOTFS, "mmc", "blkdev", "/dev/mmc2.1"},
-	{ROOTFS, "sata", "blkdev", "/dev/ata0.1"},
-	{KERNEL, "emmc", "file", "/dev/mmc3.0"},
-	{KERNEL, "mmc", "file", "/dev/mmc2.0"},
-	{KERNEL, "sata", "file", "/dev/ata0.0"},
-	{DTB, "emmc", "file", "/dev/mmc3.0"},
-	{DTB, "mmc", "file", "/dev/mmc2.0"},
-	{DTB, "sata", "file", "/dev/ata0.0"},
-	{LVDS, "emmc", "lvds", "/dev/mmc3.0"},
-	{LVDS, "mmc", "lvds", "/dev/mmc2.0"},
-	{LVDS, "sata", "lvds", "/dev/ata0.0"}
-};
+static const char spiflash_dev[] = "spiflash";
+static const char mmc_dev[] = "mmc";
+static const char block_dev[] = "blkdev";
+static const char file_dev[] = "file";
+static const char lvds_dev[] = "lvds";
 
 static int swu_update_status(int status)
 {
@@ -109,21 +75,6 @@ static int swu_update_status(int status)
 		return -ENOSYS;
 	local->status = status;
 	return local->func(local);
-}
-
-/**
-* find update image data using type and target dev
-*/
-static struct img_data *swu_get_img_data(enum img_type type, const char *tgt)
-{
-	int i;
-	for (i = 0; i < sizeof(img_map)/sizeof(struct img_data); i++) {
-		if (type == img_map[i].type &&
-			!strcmp(tgt, img_map[i].target)) {
-			return &img_map[i];
-		}
-	}
-	return NULL;
 }
 
 /**
@@ -155,7 +106,7 @@ static int swu_update_bb(const char *bb_dev)
 {
 	const char *img;
 	char full_nm[NM_LEN];
-	struct img_data *id;
+	char target_dev[NM_LEN];
 	struct bbu_data data = { .flags = 0 };
 	int ret = 0;
 
@@ -163,16 +114,18 @@ static int swu_update_bb(const char *bb_dev)
 	if (!img)
 		return ret;
 
-	id = swu_get_img_data(BB, bb_dev);
-	if (!id)
-		return -EINVAL;
+	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s.barebox", bb_dev);
 
 	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
 	if (swu_check_img(full_nm, full_nm))
 		return -EINVAL;
 
-	data.devicefile = id->target_dev;
-	data.handler_name = id->handler_name;
+	if (!strcmp(bb_dev, "m25p0"))
+		data.handler_name = spiflash_dev;
+	else
+		data.handler_name = mmc_dev;
+
+	data.devicefile = target_dev;
 	data.imagefile = full_nm;
 	data.flags |= BBU_FLAG_YES;
 	data.image = read_file(data.imagefile, &data.len);
@@ -181,7 +134,7 @@ static int swu_update_bb(const char *bb_dev)
 	ret = barebox_update(&data);
 	if (!ret)
 		/* Take partition table into account */
-		ret = swu_check_buf_img(&data, full_nm, id->target_dev);
+		ret = swu_check_buf_img(&data, full_nm, target_dev);
 
 	free(data.image);
 
@@ -197,7 +150,7 @@ static int swu_update_bb_env(const char *bb_dev)
 {
 	const char *img;
 	char full_nm[NM_LEN];
-	struct img_data *id;
+	char target_dev[NM_LEN];
 	struct bbu_data data = { .flags = 0 };
 	int ret = 0;
 
@@ -205,16 +158,14 @@ static int swu_update_bb_env(const char *bb_dev)
 	if (!img)
 		return ret;
 
-	id = swu_get_img_data(BB_ENV, bb_dev);
-	if (!id)
-		return -EINVAL;
+	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s.barebox-environment", bb_dev);
 
-	if (!strncmp(bb_dev, "flash", 5) && swu_erase_flash(id->target_dev))
+	if (!strncmp(bb_dev, "m25p0", 5) && swu_erase_flash(target_dev))
 		return -EINVAL;
 
 	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-	data.devicefile = id->target_dev;
-	data.handler_name = id->handler_name;
+	data.devicefile = target_dev;
+	data.handler_name = block_dev;
 	data.imagefile = full_nm;
 	ret = barebox_update(&data);
 
@@ -230,7 +181,7 @@ static int swu_update_os_full(const char *os_dev)
 {
 	const char *img;
 	char full_nm[NM_LEN];
-	struct img_data *id;
+	char target_dev[NM_LEN];
 	struct bbu_data data = { .flags = 0x1 /* be verbose */ };
 	int ret = 0;
 
@@ -238,13 +189,11 @@ static int swu_update_os_full(const char *os_dev)
 	if (!img)
 		return -ENOENT;
 
-	id = swu_get_img_data(OS, os_dev);
-	if (!id)
-		return -EINVAL;
+	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s", os_dev);
 
 	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-	data.devicefile = id->target_dev;
-	data.handler_name = id->handler_name;
+	data.devicefile = target_dev;
+	data.handler_name = block_dev;
 	data.imagefile = full_nm;
 	ret = barebox_update(&data);
 
@@ -260,7 +209,7 @@ static int swu_update_rootfs(const char *os_dev)
 {
 	const char *img;
 	char full_nm[NM_LEN];
-	struct img_data *id;
+	char target_dev[NM_LEN];
 	struct bbu_data data = { .flags = 0 };
 	int ret = 0;
 
@@ -269,13 +218,11 @@ static int swu_update_rootfs(const char *os_dev)
 		return ret;
 
 	printf("Starting update\n");
-	id = swu_get_img_data(ROOTFS, os_dev);
-	if (!id)
-		return -EINVAL;
+	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s.1", os_dev);
 
 	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-	data.devicefile = id->target_dev;
-	data.handler_name = id->handler_name;
+	data.devicefile = target_dev;
+	data.handler_name = block_dev;
 	data.imagefile = full_nm;
 	ret = barebox_update(&data);
 
@@ -291,7 +238,7 @@ static int swu_update_kernel(const char *os_dev)
 {
 	const char *img;
 	char full_nm[NM_LEN];
-	struct img_data *id;
+	char target_dev[NM_LEN];
 	struct bbu_data data = { .flags = 0 };
 	int ret = 0;
 
@@ -299,13 +246,11 @@ static int swu_update_kernel(const char *os_dev)
 	if (!img)
 		return ret;
 
-	id = swu_get_img_data(KERNEL, os_dev);
-	if (!id)
-		return -EINVAL;
+	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s.0", os_dev);
 
 	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-	data.devicefile = id->target_dev;
-	data.handler_name = id->handler_name;
+	data.devicefile = target_dev;
+	data.handler_name = file_dev;
 	data.imagefile = full_nm;
 	ret = barebox_update(&data);
 
@@ -321,7 +266,7 @@ static int swu_update_dtb(const char *os_dev)
 {
 	const char *img;
 	char full_nm[NM_LEN];
-	struct img_data *id;
+	char target_dev[NM_LEN];
 	struct bbu_data data = { .flags = 0 };
 	int ret = 0;
 
@@ -329,13 +274,11 @@ static int swu_update_dtb(const char *os_dev)
 	if (!img)
 		return ret;
 
-	id = swu_get_img_data(DTB, os_dev);
-	if (!id)
-		return -EINVAL;
+	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s.0", os_dev);
 
 	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-	data.devicefile = id->target_dev;
-	data.handler_name = id->handler_name;
+	data.devicefile = target_dev;
+	data.handler_name = file_dev;
 	data.imagefile = full_nm;
 	data.image = "oftree";
 	ret = barebox_update(&data);
@@ -351,7 +294,7 @@ static int swu_update_dtb(const char *os_dev)
 static int swu_update_lvds_param(const char *os_dev)
 {
 	const char *parm;
-	struct img_data *id;
+	char target_dev[NM_LEN];
 	struct bbu_data data = { .flags = 0 };
 	int ret = 0;
 
@@ -359,11 +302,9 @@ static int swu_update_lvds_param(const char *os_dev)
 	if (!parm)
 		return ret;
 
-	id = swu_get_img_data(LVDS, os_dev);
-	if (!id)
-		return -EINVAL;
-	data.devicefile = id->target_dev;
-	data.handler_name = id->handler_name;
+	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s.0", os_dev);
+	data.devicefile = target_dev;
+	data.handler_name = lvds_dev;
 	data.imagefile = "oftree";
 	ret = barebox_update(&data);
 	if (ret)
@@ -484,7 +425,7 @@ static void swu_init_logfile(void)
 /**
 * mount usb stick containg the sw images.
 */
-static int swu_prepare_update(const char *bb_dev, const char *os_dev)
+static int swu_prepare_update(void)
 {
 	int ret = 0;
 
@@ -514,20 +455,19 @@ static int swu_enable_devices(const char *bb_dev, const char *os_dev)
 {
 	struct device_d *dev;
 	int ret = 0;
-
-	if (!strncmp(bb_dev, "mmc", 3) || !strncmp(os_dev, "mmc", 3)) {
+	if (!strncmp(bb_dev, "mmc2", 4) || !strncmp(os_dev, "mmc2", 4)) {
 		dev = get_device_by_name("mmc2");
 		if (dev)
 			ret = dev_set_param(dev, "probe", "1");
 	}
 
-	if (!strncmp(bb_dev, "emmc", 4) || !strncmp(os_dev, "emmc", 4)) {
+	if (!strncmp(bb_dev, "mmc3", 4) || !strncmp(os_dev, "mmc3", 4)) {
 		dev = get_device_by_name("mmc3");
 		if (dev)
 			ret = dev_set_param(dev, "probe", "1");
 	}
 
-	if (!strncmp(bb_dev, "sata", 4) || !strncmp(os_dev, "sata", 4)) {
+	if (!strncmp(bb_dev, "ata0", 4) || !strncmp(os_dev, "ata0", 4)) {
 		dev = get_device_by_name("ata0");
 		if (dev)
 			ret = dev_set_param(dev, "probe", "1");
@@ -556,19 +496,17 @@ static int swu_switch_boot_needed(void)
 */
 static int swu_switch_boot(const char *boot_dev, const char *root_dev)
 {
-	struct img_data *id;
+	char tg_dev[NM_LEN];
 
-	swu_log("switching boot device (%s).\n", boot_dev);
+	swu_log("switching boot device (%s).\n", root_dev);
 
 	if(nvvar_add("boot.default", root_dev))
 		return -EPERM;
 
-	id = swu_get_img_data(BB_ENV, boot_dev);
-	if (!id)
-		return -EINVAL;
+	snprintf(tg_dev, sizeof(tg_dev)-1, DEV"%s.barebox-environment", boot_dev);
 
-	swu_log("save new env in %s\n", id->target_dev);
-	return envfs_save(id->target_dev, "/env", 0);
+	swu_log("save new env in %s\n", tg_dev);
+	return envfs_save(tg_dev, "/env", 0);
 }
 
 static void copy_log(void)
@@ -584,7 +522,7 @@ static int do_swu(int argc, char *argv[])
 	const char *bb_dev, *os_dev, *log;
 	int ret = 0;
 
-	if (swu_prepare_update(bb_dev, os_dev)) {
+	if (swu_prepare_update()) {
 		pr_info("swu: no update media found.\n");
 		return 0;
 	}
