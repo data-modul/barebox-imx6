@@ -144,6 +144,60 @@ static int swu_update_bb(const char *bb_dev)
 }
 
 /**
+* erase barebox env
+*/
+static int swu_erase_bb_env(const char *bb_dev)
+{
+	char buf[RW_BUF_SIZE];
+	char target_dev[NM_LEN];
+	int ret = 0;
+	struct stat s;
+	long long int size;
+	int devfd =0;
+	int w;
+
+	memset(buf, 0, RW_BUF_SIZE);
+	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s.barebox-environment", bb_dev);
+
+	if (!strncmp(bb_dev, "mmc2", 4)) {
+		ret = stat(target_dev, &s);
+		if (ret) {
+			swu_log("no %s: %d\n", target_dev, ret);
+			return -ENODEV;
+		}
+		size = s.st_size;
+		devfd = open(target_dev, O_WRONLY);
+		if (devfd < 0) {
+			swu_log("Could not open %s\n", target_dev);
+			return -ENOENT; 
+		}
+		swu_log("update block device: %s -> Default\n", target_dev);
+		while (size) {
+			w = write (devfd, buf, RW_BUF_SIZE);
+			if (w < 0) {
+				swu_log("error in erasing %s\n", target_dev);
+				close(devfd);
+				return -EIO ;
+			}
+			size -= RW_BUF_SIZE;
+		}
+		close(devfd);
+	}
+	else if(!strncmp(bb_dev, "m25p0", 5)) {
+		swu_log("update block device %s -> Default\n", target_dev);
+		ret = swu_erase_flash(target_dev);
+		if (ret < 0) {
+			swu_log("error in erasing %s\n", target_dev);
+			return -EINVAL;
+		}
+	}
+	else
+		return -ENODEV;
+
+	return ret;
+}
+
+/**
 * update barebox env
 */
 static int swu_update_bb_env(const char *bb_dev)
@@ -160,14 +214,18 @@ static int swu_update_bb_env(const char *bb_dev)
 
 	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s.barebox-environment", bb_dev);
 
-	if (!strncmp(bb_dev, "m25p0", 5) && swu_erase_flash(target_dev))
-		return -EINVAL;
+	if (!strncmp(img, "DEFAULT", 7))
+		ret = swu_erase_bb_env(bb_dev);
+	else {
+		if (!strncmp(bb_dev, "m25p0", 5) && swu_erase_flash(target_dev))
+			return -EINVAL;
 
-	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
-	data.devicefile = target_dev;
-	data.handler_name = block_dev;
-	data.imagefile = full_nm;
-	ret = barebox_update(&data);
+		snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
+		data.devicefile = target_dev;
+		data.handler_name = block_dev;
+		data.imagefile = full_nm;
+		ret = barebox_update(&data);
+	}
 
 	swu_log("update barebox env status: %d\n", ret);
 
