@@ -657,11 +657,13 @@ static int do_swu(int argc, char *argv[])
 		pr_err("umount usb failed.\n");
 
 	pr_info("please remove usb media and reset the board.");
+
 	if (ret)
 		swu_update_status(FAIL);
 	else
 		swu_update_status(SUCCESS);
 
+	while (1);
 	return ret;
 }
 
