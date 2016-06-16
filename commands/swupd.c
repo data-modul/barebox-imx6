@@ -275,7 +275,6 @@ static int swu_update_os_full(const char *os_dev)
 	data.handler_name = block_dev;
 	data.imagefile = full_nm;
 	ret = barebox_update(&data);
-
 	swu_log("update os full image status: %d\n", ret);
 
 	return ret;
@@ -397,7 +396,7 @@ static int swu_update_fs(const char *os_dev)
 {
 	int ret = 0;
 	ret |= swu_update_os_full(os_dev);
-	if (ret < 0) {
+	if (ret == -ENOENT) {
 		ret = 0;
 		ret |= swu_update_rootfs(os_dev);
 		ret |= swu_update_kernel(os_dev);
@@ -637,9 +636,7 @@ static int do_swu(int argc, char *argv[])
 	swu_log("update: bb dev: %s os dev: %s\n", bb_dev, os_dev);
 
 	ret = swu_update_bb(bb_dev);
-
 	ret |= swu_update_bb_env(bb_dev);
-
 	ret |= swu_update_fs(os_dev);
 
 	if (swu_switch_boot_needed())
