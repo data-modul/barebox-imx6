@@ -604,6 +604,18 @@ static void copy_log(void)
 		pr_err("ERR: copying log file to usb stick failed!\n");
 }
 
+/*  called to show final update result*/
+static void swu_result_show (int ret)
+{
+	pr_info("please remove usb media and reset the board.");
+	if (ret)
+		swu_update_status(FAIL);
+	else
+		swu_update_status(SUCCESS);
+
+	while (1);
+}
+
 /* Use handler instead fixed functions */
 static int do_swu(int argc, char *argv[])
 {
@@ -620,12 +632,14 @@ static int do_swu(int argc, char *argv[])
 	swu_log("<<< SWU START >>>\n");
 	if (swu_check_config_ver()) {
 		swu_log("ERROR: invalid config file version.\n");
-		return -EINVAL;
+		swu_result_show(-EINVAL);
 	}
 
 	swu_log("reading ini file\n");
-	if (swu_read_config())
-		return -EINVAL;
+	if (swu_read_config()) {
+		swu_log("ERROR in config file.\n");
+		swu_result_show(-EINVAL);
+	}
 
 	bb_dev = getenv("BB_TARGET_DEV");
 	if (!bb_dev)
@@ -635,8 +649,10 @@ static int do_swu(int argc, char *argv[])
 	if (!os_dev)
 		os_dev = OS_DEFAULT_DEV;
 
-	if (swu_enable_devices(bb_dev, os_dev))
-		return -EINVAL;
+	if (swu_enable_devices(bb_dev, os_dev)) {
+		swu_log("ERROR: related devices cannot be found.\n");
+		swu_result_show(-EINVAL);
+	}
 
 	swu_log("update: bb dev: %s os dev: %s\n", bb_dev, os_dev);
 
@@ -664,7 +680,6 @@ static int do_swu(int argc, char *argv[])
 		swu_update_status(SUCCESS);
 
 	while (1);
-	return ret;
 }
 
 BAREBOX_CMD_HELP_START()
