@@ -418,10 +418,11 @@ static int swu_check_config_ver(void)
 	size_t size;
 	int ret = 0, i;
 
-	swu_log("Checking config file version.\n");
 	line = read_file(INIFILE, &size);
 	if (!line)
-		return -EINVAL;
+		return -ENOENT;
+
+	swu_log("Checking config file version.\n");
 
 	for (i = 0; i < size; i++) {
 		if (line[i] == '\n') {
@@ -627,14 +628,22 @@ static int do_swu(int argc, char *argv[])
 		return 0;
 	}
 
-	swu_update_status(PROGRESS);
-
-	swu_log("<<< SWU START >>>\n");
-	if (swu_check_config_ver()) {
-		swu_log("ERROR: invalid config file version.\n");
-		swu_result_show(-EINVAL);
+	ret = swu_check_config_ver();
+	if (ret == -ENOENT) {
+		swu_log("No inifile found.\n");
+		return 0;
+	}
+	else {
+		swu_update_status(PREPARATION);
+		swu_update_status(PROGRESS);
+		swu_log("<<< SWU START >>>\n");
+		if (ret) {
+			swu_log("ERROR: invalid config file version.\n");
+			swu_result_show(-EINVAL);
+		}
 	}
 
+	ret = 0;
 	swu_log("reading ini file\n");
 	if (swu_read_config()) {
 		swu_log("ERROR in config file.\n");
