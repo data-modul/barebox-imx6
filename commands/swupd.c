@@ -248,7 +248,7 @@ static int swu_update_script(void)
 
 	img = getenv("SCRIPT");
 	if (!img)
-		return ret;
+		return -EINVAL;
 
 	swu_log("Script executing...\n");
 	sprintf(full_nm,USB_MNT"/%s",img);
@@ -606,14 +606,11 @@ static void copy_log(void)
 }
 
 /*  called to show final update result*/
-static void swu_result_show (int ret)
+static void pre_swu_fail(void)
 {
 	pr_info("please remove usb media and reset the board.");
-	if (ret)
-		swu_update_status(FAIL);
-	else
-		swu_update_status(SUCCESS);
-
+	if (umount(USB_MNT))
+		pr_err("\numount usb failed.");
 	while (1);
 }
 
@@ -622,71 +619,82 @@ static int do_swu(int argc, char *argv[])
 {
 	const char *bb_dev, *os_dev, *log;
 	int ret = 0;
+	int flag = 0;
 
 	if (swu_prepare_update()) {
 		pr_info("swu: no update media found.\n");
 		return 0;
 	}
 
+	swu_log("SWU preparation... \n");
+
 	ret = swu_check_config_ver();
 	if (ret == -ENOENT) {
 		swu_log("No inifile found.\n");
 		return 0;
 	}
-	else {
-		swu_update_status(PREPARATION);
-		swu_update_status(PROGRESS);
-		swu_log("<<< SWU START >>>\n");
-		if (ret) {
+	else if (ret) {
 			swu_log("ERROR: invalid config file version.\n");
-			swu_result_show(-EINVAL);
-		}
+			pre_swu_fail();
 	}
 
 	ret = 0;
 	swu_log("reading ini file\n");
 	if (swu_read_config()) {
 		swu_log("ERROR in config file.\n");
-		swu_result_show(-EINVAL);
+		goto out;
 	}
 
-	bb_dev = getenv("BB_TARGET_DEV");
-	if (!bb_dev)
-		bb_dev = BB_DEFAULT_DEV;
+	if (swu_update_script() == -EINVAL) {//means no scritp found
 
-	os_dev = getenv("OS_TARGET_DEV");
-	if (!os_dev)
-		os_dev = OS_DEFAULT_DEV;
+		flag = 1;
+		swu_update_status(PREPARATION);
+		swu_update_status(PROGRESS);
+		swu_log("<<< SWU START >>>\n");
 
-	if (swu_enable_devices(bb_dev, os_dev)) {
-		swu_log("ERROR: related devices cannot be found.\n");
-		swu_result_show(-EINVAL);
+		bb_dev = getenv("BB_TARGET_DEV");
+		if (!bb_dev)
+			bb_dev = BB_DEFAULT_DEV;
+
+		os_dev = getenv("OS_TARGET_DEV");
+		if (!os_dev)
+			os_dev = OS_DEFAULT_DEV;
+
+		if (swu_enable_devices(bb_dev, os_dev)) {
+			swu_log("ERROR: related devices cannot be found.\n");
+			ret = -ENODEV;
+			goto out;
+		}
+
+		swu_log("update: bb dev: %s os dev: %s\n", bb_dev, os_dev);
+
+		ret = swu_update_bb(bb_dev);
+		ret |= swu_update_bb_env(bb_dev);
+		ret |= swu_update_fs(os_dev);
+
+		if (swu_switch_boot_needed())
+			ret |= swu_switch_boot(bb_dev, os_dev);
+
+		swu_log("update status: %d\n", ret);
 	}
 
-	swu_log("update: bb dev: %s os dev: %s\n", bb_dev, os_dev);
-
-	ret = swu_update_bb(bb_dev);
-	ret |= swu_update_bb_env(bb_dev);
-	ret |= swu_update_fs(os_dev);
-
-	if (swu_switch_boot_needed())
-		ret |= swu_switch_boot(bb_dev, os_dev);
-
-	swu_log("update status: %d\n", ret);
-
+out:
 	log = getenv("LOGGING");
 	if (log)
 		copy_log();
 
-	if (umount(USB_MNT))
-		pr_err("umount usb failed.\n");
+	if (flag == 1) /* means no script in swu */
+	{
+		if (ret)
+			swu_update_status(FAIL);
+		else
+			swu_update_status(SUCCESS);
+	}
 
 	pr_info("please remove usb media and reset the board.");
 
-	if (ret)
-		swu_update_status(FAIL);
-	else
-		swu_update_status(SUCCESS);
+	if (umount(USB_MNT))
+		pr_err("\numount usb failed.");
 
 	while (1);
 }
