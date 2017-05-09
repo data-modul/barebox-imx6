@@ -56,7 +56,7 @@
 		int fd; \
 		fd = open(LOGFILE, O_CREAT|O_APPEND|O_WRONLY); \
 		if (fd > 0) { \
-			fprintf(fd, fmt, ##args); \
+			dprintf(fd, fmt, ##args); \
 			close(fd); \
 		} \
 		pr_info(fmt, ##args); \
