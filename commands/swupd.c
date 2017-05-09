@@ -49,6 +49,8 @@
 #define NM_LEN		128
 #define DEV	"/dev/"
 
+#define NO_FULL_OS	600 /* define new return value,to avoid conflict with errno codes*/
+
 #define USBFILE		"/mnt/disk/update.log"
 #define LOGFILE		".update.log.tmp"
 #define swu_log(fmt, args...) \
@@ -266,7 +268,7 @@ static int swu_update_os_full(const char *os_dev)
 
 	img = getenv("FULL_IMAGE");
 	if (!img)
-		return -ENOENT;
+		return NO_FULL_OS;
 
 	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s", os_dev);
 
@@ -396,7 +398,7 @@ static int swu_update_fs(const char *os_dev)
 {
 	int ret = 0;
 	ret |= swu_update_os_full(os_dev);
-	if (ret == -ENOENT) {
+	if (ret == NO_FULL_OS) {
 		ret = 0;
 		ret |= swu_update_rootfs(os_dev);
 		ret |= swu_update_kernel(os_dev);
