@@ -132,7 +132,10 @@ static int swu_update_bb(const char *bb_dev)
 	data.flags |= BBU_FLAG_YES;
 	data.image = read_file(data.imagefile, &data.len);
 	if (!data.image)
+	{
+		swu_log("Barebox image is not found %d\n", ret);
 		return -errno;
+	}
 	ret = barebox_update(&data);
 	if (!ret)
 		/* Take partition table into account */
