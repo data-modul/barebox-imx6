@@ -32,6 +32,7 @@ config ARCH_TEXT_BASE
 	default 0x97f00000 if MACH_EFIKA_MX_SMARTBOOK
 	default 0x17800000 if MACH_SABRESD
 	default 0x4fc00000 if MACH_REALQ7
+	default 0x4fc00000 if MACH_DMO_IMX6_PPC
 	default 0x4fc00000 if MACH_GK802
 	default 0x87f00000 if MACH_KINDLE3
 	default 0x2fc00000 if MACH_TQMA6X
@@ -375,6 +376,9 @@ config MACH_ZII_VF610_DEV
 	select ARCH_VF610
 	select CLKDEV_LOOKUP
 
+config MACH_DMO_IMX6_PPC
+	bool "Data Modul iMX6-based PPC"
+	select ARCH_IMX6
 endif
 
 # ----------------------------------------------------------
