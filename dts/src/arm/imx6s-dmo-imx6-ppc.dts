@@ -354,6 +354,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usbotg>;
 	vbus-supply = <&reg_usb_otg_vbus>;
+	disable-over-current;
 	dr_mode = "host";
 	status = "okay";
 };
