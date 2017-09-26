@@ -28,6 +28,7 @@
 #define CLR				0x8
 
 #define USBPHY_CTRL			0x30
+#define USBPHY_TX			0x10
 
 #define USBPHY_CTRL_SFTRST		(1 << 31)
 #define USBPHY_CTRL_CLKGATE		(1 << 30)
@@ -64,6 +65,8 @@ static int imx_usbphy_phy_init(struct phy *phy)
 	/* set utmilvl2/3 */
 	writel(USBPHY_CTRL_ENUTMILEVEL3 | USBPHY_CTRL_ENUTMILEVEL2,
 	       imxphy->base + USBPHY_CTRL + SET);
+
+	writel(0xf, imxphy->base + USBPHY_TX + SET);
 
 	return 0;
 }
