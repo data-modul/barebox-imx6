@@ -28,6 +28,30 @@
 #define DMO_IMX6_PPC_PIN_USB_OTG_HOST_MODE	IMX_GPIO_NR(1, 7)
 #define DMO_IMX6_PPC_PIN_USB_OTG_PWR_EN		IMX_GPIO_NR(3, 22)
 
+static struct swu_hook hook;
+
+static int swu_display(struct swu_hook *r)
+{
+	switch (r->status) {
+		case PREPARATION:
+			printf("Preparing Software update!/n");
+			break;
+		case SUCCESS:
+			printf("Software update successfully finished!/n");
+			break;
+		case FAIL:
+			printf("Software update failed!/n");
+			break;
+		case PROGRESS:
+			printf("Software update in progress!/n");
+			break;
+		default:
+			printf("Disabling Software update!/n");
+		}
+
+	return 0;
+}
+
 static int DMO_IMX6_PPC_env_init(void)
 {
 	if (!of_machine_is_compatible("dmo,imx6-ppc"))
