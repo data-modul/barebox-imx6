@@ -377,7 +377,7 @@ config MACH_ZII_VF610_DEV
 	select CLKDEV_LOOKUP
 
 config MACH_DMO_IMX6_PPC
-	bool "Data Modul iMX6-based PPC"
+	bool "Data Modul AG iMX6-based PPC"
 	select ARCH_IMX6
 endif
 
