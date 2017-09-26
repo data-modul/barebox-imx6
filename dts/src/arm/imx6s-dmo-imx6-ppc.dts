@@ -26,6 +26,22 @@
 	memory {
 		reg = <0x10000000 0x40000000>;
 	};
+
+	regulators {
+		compatible = "simple-bus";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		reg_3p3v: regulator@0 {
+			compatible = "regulator-fixed";
+			reg = <0>;
+			regulator-name = "3p3v";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+	};
 };
 
 &iomuxc {
@@ -36,11 +52,33 @@
 				MX6QDL_PAD_CSI0_DAT10__UART1_TX_DATA	0x1b0b0
 			>;
 		};
+		pinctrl_usdhc3: usdhc3grp {
+			fsl,pins = <
+				MX6QDL_PAD_SD3_CMD__SD3_CMD		0x1b0b0
+				MX6QDL_PAD_SD3_CLK__SD3_CLK		0x1b0b0
+				MX6QDL_PAD_SD3_DAT0__SD3_DATA0		0x1b0b0
+				MX6QDL_PAD_SD3_DAT1__SD3_DATA1		0x1b0b0
+				MX6QDL_PAD_SD3_DAT2__SD3_DATA2		0x1b0b0
+				MX6QDL_PAD_SD3_DAT3__SD3_DATA3		0x1b0b0
+				MX6QDL_PAD_NANDF_D0__GPIO2_IO00		0x1b0b0 /* CD */
+				MX6QDL_PAD_NANDF_D1__GPIO2_IO01		0x1b0b0 /* WP */
+			>;
+		};
 	};
 };
 
 &uart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1>;
+	status = "okay";
+};
+&usdhc3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc3>;
+
+	vmmc-supply = <&reg_3p3v>;
+	cd-gpios = <&gpio2 0 GPIO_ACTIVE_HIGH>;
+	wp-gpios = <&gpio2 1 GPIO_ACTIVE_HIGH>;
+
 	status = "okay";
 };
