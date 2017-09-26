@@ -15,6 +15,8 @@
 #include <dt-bindings/gpio/gpio.h>
 #include "imx6dl.dtsi"
 
+#define NO_PAD_CTRL	(1 << 31)
+
 / {
 	model = "Data Modul AG iMX6-based PPC";
 	compatible = "dmo,imx6-ppc", "fsl,imx6dl";
@@ -52,6 +54,16 @@
 				MX6QDL_PAD_CSI0_DAT10__UART1_TX_DATA	0x1b0b0
 			>;
 		};
+
+		pinctrl_ecspi3: ecspi3grp {
+			fsl,pins = <
+				MX6QDL_PAD_DISP0_DAT0__ECSPI3_SCLK	0x1b0b0
+				MX6QDL_PAD_DISP0_DAT2__ECSPI3_MISO	0x1b0b0
+				MX6QDL_PAD_DISP0_DAT1__ECSPI3_MOSI	0x1b0b0
+				MX6QDL_PAD_DISP0_DAT3__GPIO4_IO24	NO_PAD_CTRL
+			>;
+		};
+
 		pinctrl_usdhc3: usdhc3grp {
 			fsl,pins = <
 				MX6QDL_PAD_SD3_CMD__SD3_CMD		0x1b0b0
@@ -82,3 +94,23 @@
 
 	status = "okay";
 };
+
+&ecspi3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi3>;
+
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <&gpio4 24 GPIO_ACTIVE_HIGH>;
+
+	status = "okay";
+
+	flash: m25p80@0 {
+		compatible = "m25p80";
+		spi-max-frequency = <40000000>;
+		reg = <0>;
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+	};
+};
+
