@@ -571,7 +571,7 @@ CONFIG_HW_HAS_PCI=y
 #
 # PHY Subsystem
 #
-# CONFIG_GENERIC_PHY is not set
+CONFIG_GENERIC_PHY=y
 
 #
 # Filesystem support
