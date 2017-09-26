@@ -34,6 +34,16 @@
 
 		#address-cells = <1>;
 		#size-cells = <0>;
+
+		reg_usb_otg_vbus: regulator@1 {
+			compatible = "regulator-fixed";
+			reg = <0>;
+			regulator-name = "usb_otg_vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio3 22 GPIO_ACTIVE_LOW>;
+			enable-active-high;
+		};
 	};
 };
 
@@ -101,6 +111,13 @@
 			fsl,pins = <
 				MX6QDL_PAD_GPIO_3__I2C3_SCL		0x4001b0b0
 				MX6QDL_PAD_GPIO_6__I2C3_SDA		0x4001b0b0
+			>;
+		};
+
+		pinctrl_usbotg: usbotggrp {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D22__GPIO3_IO22		0x1b0b0
+				MX6QDL_PAD_ENET_RX_ER__USB_OTG_ID	0x1b0b0
 			>;
 		};
 
@@ -281,3 +298,15 @@
 
 	status = "okay";
 };
+
+&usbotg {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usbotg>;
+
+	vbus-supply = <&reg_usb_otg_vbus>;
+	disable-over-current;
+
+	dr_mode = "host";
+	status = "okay";
+};
+

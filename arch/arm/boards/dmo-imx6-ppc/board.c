@@ -46,10 +46,8 @@ static int DMO_IMX6_PPC_device_init(void)
 		return 0;
 
 	/* ensure that we are in usb host mode */
-#if 0	
 	gpio_direction_output(DMO_IMX6_PPC_PIN_USB_OTG_HOST_MODE, 0);
 	gpio_direction_output(DMO_IMX6_PPC_PIN_USB_OTG_PWR_EN, 1);
-#endif
 
 	barebox_set_hostname("dmo-imx6-ppc");
 
