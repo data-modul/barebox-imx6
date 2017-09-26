@@ -380,6 +380,7 @@ CONFIG_CMD_TIME=y
 # CONFIG_CMD_DHRYSTONE is not set
 # CONFIG_CMD_SPD_DECODE is not set
 # CONFIG_NET is not set
+CONFIG_CMD_SWU=y
 
 #
 # Drivers
