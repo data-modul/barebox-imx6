@@ -142,7 +142,7 @@
 
 		pinctrl_usdhc4: usdhc4grp {
 			fsl,pins = <
-+				MX6QDL_PAD_SD4_CLK__SD4_CLK		0x1b0b1
+				MX6QDL_PAD_SD4_CLK__SD4_CLK		0x1b0b1
 				MX6QDL_PAD_SD4_CMD__SD4_CMD		0x1b0b0
 				MX6QDL_PAD_SD4_DAT0__SD4_DATA0		0x1b0b0
 				MX6QDL_PAD_SD4_DAT1__SD4_DATA1		0x1b0b0
