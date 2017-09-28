@@ -1,0 +1,15 @@
+#!/bin/sh
+
+if [ -n "$nv.boot.default" ]; then
+	exit
+fi
+
+if [ -f /mnt/mmc2/zImage ]; then
+	global.boot.default=mmc2
+elif [ -f /mnt/mmc3/zImage ]; then
+	global.boot.default=mmc3
+elif [ -f /mnt/tftp/zImage ]; then
+	global.boot.default=net
+elif [ -f /mnt/nfs/zImage ]; then
+	global.boot.default=nfs
+fi
