@@ -60,8 +60,11 @@ static int DMO_IMX6_PPC_env_init(void)
 	imx6_bbu_internal_spi_i2c_register_handler("spiflash", "/dev/m25p0.barebox", BBU_HANDLER_FLAG_DEFAULT);
 	imx6_bbu_internal_mmc_register_handler("mmc", "/dev/mmc2.barebox", 0);
 
-	if (IS_ENABLED(CONFIG_DMO_SWU))
+	if (IS_ENABLED(CONFIG_DMO_SWU)) {
 		swu_register_dmo_handlers();
+		hook.func = swu_display;
+		swu_register_hook(&hook);
+	}
 
 	return 0;
 }
