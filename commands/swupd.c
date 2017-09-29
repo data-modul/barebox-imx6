@@ -514,7 +514,6 @@ static int swu_prepare_update(void)
 {
 	int ret = 0;
 
-	swu_update_status(PREPARATION);
 	usb_rescan();
 
 	pr_info("mounting usb media...\n");
