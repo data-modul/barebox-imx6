@@ -34,19 +34,19 @@ static int swu_display(struct swu_hook *r)
 {
 	switch (r->status) {
 		case PREPARATION:
-			printf("Preparing Software update!/n");
+			printf("Preparing Software update!\n");
 			break;
 		case SUCCESS:
-			printf("Software update successfully finished!/n");
+			printf("Software update successfully finished!\n");
 			break;
 		case FAIL:
-			printf("Software update failed!/n");
+			printf("Software update failed!\n");
 			break;
 		case PROGRESS:
-			printf("Software update in progress!/n");
+			printf("Software update in progress!\n");
 			break;
 		default:
-			printf("Disabling Software update!/n");
+			printf("Disabling Software update!\n");
 		}
 
 	return 0;
