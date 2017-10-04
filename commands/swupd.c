@@ -300,7 +300,6 @@ static int swu_update_rootfs(const char *os_dev)
 	if (!img)
 		return ret;
 
-	printf("Starting update\n");
 	snprintf(target_dev, sizeof(target_dev)-1, DEV"%s.1", os_dev);
 
 	snprintf(full_nm, sizeof(full_nm)-1, USB_MNT"/%s", img);
@@ -389,6 +388,7 @@ static int swu_update_lvds_param(const char *os_dev)
 	data.devicefile = target_dev;
 	data.handler_name = lvds_dev;
 	data.imagefile = "oftree";
+
 	ret = barebox_update(&data);
 	if (ret)
 		pr_err("ERROR: lvds parameter update failed.\n");
@@ -407,7 +407,6 @@ static int swu_update_fs(const char *os_dev)
 		ret |= swu_update_kernel(os_dev);
 		ret |= swu_update_dtb(os_dev);
 		ret |= swu_update_lvds_param(os_dev);
-		ret |= swu_update_script();
 	}
 	return ret;
 }
@@ -647,9 +646,9 @@ static int do_swu(int argc, char *argv[])
 	if (swu_update_script() == -EINVAL) {//means no scritp found
 
 		flag = 1;
-		swu_update_status(PREPARATION);
-		swu_update_status(PROGRESS);
+
 		swu_log("<<< SWU START >>>\n");
+		swu_update_status(PROGRESS);
 
 		bb_dev = getenv("BB_TARGET_DEV");
 		if (!bb_dev)
