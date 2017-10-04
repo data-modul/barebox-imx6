@@ -578,7 +578,7 @@ static int swu_update_prop_none(struct device_node *root,
 	if (sta && !n) {
 		n = swu_get_lvds_node(root, "fsl,data-mapping");
 		if (!n || strlen(n->name) != 14 ||
-			strncmp(n->name, "lvds-channel@0", 14))
+			strncmp(n->name, "lvds-channel@1", 14))
 			return -EINVAL;
 		n = n->parent;
 		if (n)
@@ -612,7 +612,7 @@ static int swu_update_prop_str(struct device_node *root,
 	else
 		n = swu_get_lvds_node(root, ld->prop);
 	if (!n || strlen(n->name) != 14 ||
-		strncmp(n->name, "lvds-channel@0", 14))
+		strncmp(n->name, "lvds-channel@1", 14))
 		return -EINVAL;
 
 	pp = of_find_property(n, ld->prop, NULL);
