@@ -25,7 +25,6 @@
 #include <mach/generic.h>
 #include <of.h>
 
-#define DMO_IMX6_PPC_PIN_USB_OTG_HOST_MODE	IMX_GPIO_NR(1, 7)
 #define DMO_IMX6_PPC_PIN_USB_OTG_PWR_EN		IMX_GPIO_NR(3, 22)
 
 static struct swu_hook hook;
@@ -76,7 +75,6 @@ static int DMO_IMX6_PPC_device_init(void)
 		return 0;
 
 	/* ensure that we are in usb host mode */
-	gpio_direction_output(DMO_IMX6_PPC_PIN_USB_OTG_HOST_MODE, 0);
 	gpio_direction_output(DMO_IMX6_PPC_PIN_USB_OTG_PWR_EN, 1);
 
 	barebox_set_hostname("dmo-imx6-ppc");
