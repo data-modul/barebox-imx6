@@ -208,7 +208,7 @@
 
 		pinctrl_usbotg: usbotggrp {
 			fsl,pins = <
-				MX6QDL_PAD_EIM_D22__USB_OTG_PWR		0x000130B0
+				MX6QDL_PAD_EIM_D22__GPIO3_IO22		0x1b0b0
 				MX6QDL_PAD_EIM_D21__USB_OTG_OC		0x1b0b0
 				MX6QDL_PAD_GPIO_1__USB_OTG_ID		0x0001B0B0
 			>;
