@@ -42,6 +42,16 @@
 			gpio = <&gpio3 22 GPIO_ACTIVE_LOW>;
 			enable-active-high;
 		};
+
+		reg_sys_3v3: regulator@2 {
+			compatible = "regulator-fixed";
+			reg = <1>;
+			regulator-name = "sys_3v3";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-boot-on;
+			regulator-always-on;
+		};
 	};
 };
 
@@ -201,6 +211,12 @@
 				MX6QDL_PAD_EIM_D22__USB_OTG_PWR		0x000130B0
 				MX6QDL_PAD_EIM_D21__USB_OTG_OC		0x1b0b0
 				MX6QDL_PAD_GPIO_1__USB_OTG_ID		0x0001B0B0
+			>;
+		};
+
+		pinctrl_usbh1: usbh1grp {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D30__USB_H1_OC		0x1b0b0
 			>;
 		};
 
@@ -409,3 +425,10 @@
 	status = "okay";
 };
 
+&usbh1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usbh1>;
+	vbus-supply = <&reg_sys_3v3>;
+	dr_mode = "host";
+	status = "okay";
+};
