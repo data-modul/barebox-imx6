@@ -118,8 +118,6 @@
 				MX6QDL_PAD_CSI0_DAT15__UART5_RX_DATA	0x0001B0B0
 				MX6QDL_PAD_CSI0_DAT18__UART5_RTS_B	0x0001B0B0
 				MX6QDL_PAD_CSI0_DAT19__UART5_CTS_B	0x0001B0B0
-				/* usbh1 */
-				MX6QDL_PAD_GPIO_16__GPIO7_IO11		0x0001B0B0
 				/* can1 */
 				MX6QDL_PAD_GPIO_8__FLEXCAN1_RX		0x1b0b0
 				MX6QDL_PAD_KEY_COL2__FLEXCAN1_TX	0x1b0b0
@@ -216,7 +214,7 @@
 
 		pinctrl_usbh1: usbh1grp {
 			fsl,pins = <
-				MX6QDL_PAD_EIM_D30__USB_H1_OC		0x1b0b0
+				MX6QDL_PAD_GPIO_16__GPIO7_IO11		0x0001B0B0
 			>;
 		};
 
@@ -428,6 +426,7 @@
 &usbh1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usbh1>;
+	reset-gpios = <&gpio7 11 GPIO_ACTIVE_LOW>;
 	vbus-supply = <&reg_sys_3v3>;
 	dr_mode = "host";
 	status = "okay";

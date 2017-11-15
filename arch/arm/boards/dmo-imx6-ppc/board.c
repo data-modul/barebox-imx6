@@ -26,6 +26,7 @@
 #include <of.h>
 
 #define DMO_IMX6_PPC_PIN_USB_OTG_PWR_EN		IMX_GPIO_NR(3, 22)
+#define DMO_IMX6_PPC_PIN_USB_HUB_RST		IMX_GPIO_NR(7, 11)
 
 static struct swu_hook hook;
 
@@ -76,6 +77,7 @@ static int DMO_IMX6_PPC_device_init(void)
 
 	/* ensure that we are in usb host mode */
 	gpio_direction_output(DMO_IMX6_PPC_PIN_USB_OTG_PWR_EN, 1);
+	gpio_direction_output(DMO_IMX6_PPC_PIN_USB_HUB_RST, 1);
 
 	barebox_set_hostname("dmo-imx6-ppc");
 
