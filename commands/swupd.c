@@ -647,6 +647,7 @@ static int do_swu(int argc, char *argv[])
 
 		flag = 1;
 
+		swu_update_status(PREPARATION);
 		swu_log("<<< SWU START >>>\n");
 		swu_update_status(PROGRESS);
 
