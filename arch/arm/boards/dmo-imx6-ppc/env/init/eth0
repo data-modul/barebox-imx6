@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ -n "$ocotp0.mac_addr" ]; then
+	echo "hii 2"
+	eth0.ethaddr=$ocotp0.mac_addr
+fi
