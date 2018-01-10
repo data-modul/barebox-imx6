@@ -273,7 +273,6 @@
 &usdhc3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usdhc3>;
-	vmmc-supply = <&sw2_reg>;
 	cd-gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;
 	/* WP cannot be really used on uSD socket */
 	wp-gpios = <&gpio2 1 GPIO_ACTIVE_HIGH>;
@@ -299,7 +298,6 @@
 &usdhc4 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usdhc4>;
-	vmmc-supply = <&sw2_reg>;
 	non-removable;
 	bus-width = <8>;
 	status = "okay";
@@ -341,7 +339,7 @@
 
 			sw2_reg: sw2 {
 				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3300000>;
+				regulator-max-microvolt = <3000000>;
 				regulator-boot-on;
 			};
 
