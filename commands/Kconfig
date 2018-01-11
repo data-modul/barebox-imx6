@@ -2115,11 +2115,16 @@ config CMD_SPD_DECODE
 	help
 	  decode spd eeprom
 
-# end Miscellaneous commands
+config CMD_SWU
+	tristate
+	depends on USB_HOST && USB_IMX_CHIPIDEA && USB_EHCI && USB_STORAGE
+	select DMO_SWU
+	prompt "swu"
+	help
+	  swu - start software update
+
+# end Miscelleanous commands
 endmenu
-
-
-
 
 # end Commands
 endmenu

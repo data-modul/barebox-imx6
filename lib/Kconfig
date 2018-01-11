@@ -90,6 +90,10 @@ config RATP
 	  transferring packets over serial links described in RFC916. This implementation
 	  is used for controlling barebox over serial ports.
 
+config DMO_SWU
+	depends on USB_HOST && USB_IMX_CHIPIDEA && USB_EHCI && USB_STORAGE
+	bool "include DMO softwae update"
+
 source lib/gui/Kconfig
 
 source lib/fonts/Kconfig
