@@ -129,6 +129,11 @@ CFG_start_imx6_realq7.pblx.imximg = $(board)/datamodul-edm-qmx6/flash-header.imx
 FILE_barebox-datamodul-edm-qmx6.img = start_imx6_realq7.pblx.imximg
 image-$(CONFIG_MACH_REALQ7) += barebox-datamodul-edm-qmx6.img
 
+pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_imx6s_dmo_imx6_ppc
+CFG_start_imx6s_dmo_imx6_ppc.pblx.imximg = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6-ppc.imxcfg
+FILE_barebox-dmo-imx6-ppc.img = start_imx6s_dmo_imx6_ppc.pblx.imximg
+image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-dmo-imx6-ppc.img
+
 pblx-$(CONFIG_MACH_GUF_SANTARO) += start_imx6q_guf_santaro
 CFG_start_imx6q_guf_santaro.pblx.imximg = $(board)/guf-santaro/flash-header.imxcfg
 FILE_barebox-guf-santaro.img = start_imx6q_guf_santaro.pblx.imximg

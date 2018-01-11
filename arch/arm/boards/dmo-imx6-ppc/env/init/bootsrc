@@ -1,0 +1,10 @@
+#!/bin/sh
+
+global linux.bootargs.consoleblank="consoleblank=0"
+global linux.bootargs.cursordisable="vt.global_cursor_default=0"
+
+if [ -n "$nv.boot.default" ]; then
+	exit
+fi
+
+global.boot.default="mmc3 mmc2"

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+global.bootm.image="/mnt/mmc3/zImage"
+global.bootm.oftree="/mnt/mmc3/oftree"
+global.bootm.initrd="/mnt/mmc3/initramfs"
+
+global.linux.bootargs.dyn.root="root=/dev/mmcblk0p2 rootwait video=-32 fsck.repair=yes"
