@@ -306,6 +306,10 @@ AFLAGS          := -D__ASSEMBLY__
 
 LDFLAGS_barebox	:= -Map barebox.map
 
+# to prevent "Not enough room for program headers, try linking with -N" error
+# with yocto-rocko toolchain (GCC 7.2.0), add -N to LDFLAGS 
+LDFLAGS		+= -N
+
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
 KERNELRELEASE = $(shell cat include/config/kernel.release 2> /dev/null)
 KERNELVERSION = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
