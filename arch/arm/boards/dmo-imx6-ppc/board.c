@@ -25,28 +25,52 @@
 #include <mach/generic.h>
 #include <of.h>
 #include <linux/phy.h>
+#include <dt-bindings/net/ti-dp83867.h>
 
 #define DMO_IMX6_PPC_PIN_USB_OTG_PWR_EN		IMX_GPIO_NR(3, 22)
 #define DMO_IMX6_PPC_PIN_USB_HUB_RST		IMX_GPIO_NR(7, 11)
+#define DMO_IMX6_PPC_PIN_ENET_CRS_DV		IMX_GPIO_NR(1, 25)
 
-#define PHY_ID_DP83867			0x2000A231
-#define PHY_ID_MASK			0xffffffff
-#define PHY_DEVADDR			0x1F
-#define PHY_CLK_OUT_REG			0x0170
-#define PHY_CLK_OUT_MASK		0x1F
-#define PHY_CLK_OUT_CHAN_A_RX_CLK	0x00
+#define PHY_ID_DP83867				0x2000A231
+#define PHY_ID_MASK				0xffffffff
+#define DP83867_DEVADDR				0x1F
+#define DP83867_IO_MUX_CFG			0x0170
+#define DP83867_CLK_OUT_MASK			0x1F
+#define DP83867_CLK_OUT_CHAN_A_RX_CLK		0x00
+#define DP83867_RGMIICTL			0x0032
+#define DP83867_CLK_OUT_SHIFT			8
+#define DP83867_RGMII_TX_CLK_DELAY_SHIFT	4
+#define DP83867_RGMIIDCTL			0x0086
+#define DP83867_RGMII_RX_CLK_DELAY_EN		BIT(0)
+#define DP83867_RGMII_TX_CLK_DELAY_EN		BIT(1)
 
 static struct swu_hook hook;
 
+/* The PHY fixup comes from the dp83867_config_init functions from kernel4.4.57
+ * The phy driver is missed in Barebox, thus the config part from Kernel driver 
+ * copied here as fixed up. Therefore the below function comes from DP83867 
+ * driver in Kernel 4.4.57 */
 static int dp83867_phy_fixup(struct phy_device *dev)
 {
-	u16 val = 0;
+	u16 val = 0, delay;
 
-	val  = phy_read_mmd_indirect(dev, PHY_CLK_OUT_REG, PHY_DEVADDR);
-	val &= ~( PHY_CLK_OUT_MASK << 8);
-	val |= ( PHY_CLK_OUT_CHAN_A_RX_CLK << 8);
-	phy_write_mmd_indirect(dev, PHY_CLK_OUT_REG, PHY_DEVADDR, val);
+	/* reset PHY is needed, because by sw-reset is not really reset*/
+	gpio_direction_output(DMO_IMX6_PPC_PIN_ENET_CRS_DV, 0);
 	mdelay(10);
+	gpio_direction_output(DMO_IMX6_PPC_PIN_ENET_CRS_DV, 1);
+
+	/* config phy */
+	val  = phy_read_mmd_indirect(dev, DP83867_IO_MUX_CFG, DP83867_DEVADDR);
+	val &= ~( DP83867_CLK_OUT_MASK << DP83867_CLK_OUT_SHIFT);
+	val |= ( DP83867_CLK_OUT_CHAN_A_RX_CLK << DP83867_CLK_OUT_SHIFT);
+	phy_write_mmd_indirect(dev, DP83867_IO_MUX_CFG, DP83867_DEVADDR, val);
+
+	val  = phy_read_mmd_indirect(dev, DP83867_RGMIICTL, DP83867_DEVADDR);
+	val |= (DP83867_RGMII_TX_CLK_DELAY_EN | DP83867_RGMII_RX_CLK_DELAY_EN);
+	phy_write_mmd_indirect(dev, DP83867_RGMIICTL, DP83867_DEVADDR, val);
+
+	delay = (DP83867_RGMIIDCTL_2_00_NS | (DP83867_RGMIIDCTL_1_50_NS << DP83867_RGMII_TX_CLK_DELAY_SHIFT));
+	phy_write_mmd_indirect(dev, DP83867_RGMIIDCTL, DP83867_DEVADDR, delay);
 
 	return 0;
 }
