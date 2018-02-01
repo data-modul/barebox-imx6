@@ -10,7 +10,6 @@
  * http://www.opensource.org/licenses/gpl-license.html
  * http://www.gnu.org/copyleft/gpl.html
  */
-/dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/net/ti-dp83867.h>
@@ -52,7 +51,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_hog>;
 
-	imx6s-dmp-imx6-ppc {
+	imx6qdl-dmo-ppc {
 		pinctrl_hog: hoggrp {
 			fsl,pins = <
 				/* jog dial ina */
