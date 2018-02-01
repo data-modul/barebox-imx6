@@ -14,18 +14,10 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/net/ti-dp83867.h>
-#include "imx6dl.dtsi"
 
 / {
-	model = "Data Modul AG iMX6-based PPC";
-	compatible = "dmo,imx6-ppc", "fsl,imx6dl";
-
 	chosen {
 		linux,stdout-path = &uart1;
-	};
-
-	memory {
-		reg = <0x10000000 0x40000000>;
 	};
 
 	regulators {

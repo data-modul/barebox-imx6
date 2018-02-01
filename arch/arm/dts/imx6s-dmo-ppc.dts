@@ -9,7 +9,7 @@
  * http://www.gnu.org/copyleft/gpl.html
  */
 
-#include <arm/imx6s-dmo-imx6-ppc.dts>
+#include <arm/imx6s-dmo-ppc.dts>
 
 / {
 	chosen {
