@@ -99,7 +99,8 @@ static int swu_display(struct swu_hook *r)
 
 static int DMO_IMX6_PPC_env_init(void)
 {
-	if (!of_machine_is_compatible("dmo,imx6-ppc"))
+	if (! (of_machine_is_compatible("dmo,imx6dl-ppc") ||
+		of_machine_is_compatible("dmo,imx6q-ppc")))
 		return 0;
 
 	imx6_bbu_internal_spi_i2c_register_handler("spiflash", "/dev/m25p0.barebox", BBU_HANDLER_FLAG_DEFAULT);
@@ -117,7 +118,8 @@ late_initcall(DMO_IMX6_PPC_env_init);
 
 static int DMO_IMX6_PPC_device_init(void)
 {
-	if (!of_machine_is_compatible("dmo,imx6-ppc"))
+	if (! (of_machine_is_compatible("dmo,imx6dl-ppc") ||
+		of_machine_is_compatible("dmo,imx6q-ppc")))
 		return 0;
 
 	/* ensure that we are in usb host mode */
