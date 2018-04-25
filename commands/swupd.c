@@ -334,6 +334,7 @@ static int swu_update_kernel(const char *os_dev)
 	data.devicefile = target_dev;
 	data.handler_name = file_dev;
 	data.imagefile = full_nm;
+	data.image = "zImage";
 	ret = barebox_update(&data);
 
 	swu_log("update kernel status: %d\n", ret);
