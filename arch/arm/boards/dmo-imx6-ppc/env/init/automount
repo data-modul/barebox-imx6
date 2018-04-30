@@ -17,6 +17,8 @@ fi
 
 mkdir -p /mnt/mmc2
 mkdir -p /mnt/mmc3
+mkdir -p /mnt/ata0
 
 automount -d /mnt/mmc2 'mmc2.probe=1 && [ -e /dev/mmc2.0 ] && mount /dev/mmc2.0 /mnt/mmc2'
 automount -d /mnt/mmc3 'mmc3.probe=1 && [ -e /dev/mmc3.0 ] && mount /dev/mmc3.0 /mnt/mmc3'
+automount -d /mnt/ata0 'ata0.probe=1 && [ -e /dev/ata0.0 ] && mount /dev/ata0.0 /mnt/ata0'
