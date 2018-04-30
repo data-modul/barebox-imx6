@@ -60,3 +60,7 @@
 &ocotp {
 	barebox,provide-mac-address = <&fec 0x620>;
 };
+
+&sata {
+	status = "okay";
+};

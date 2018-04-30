@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ "$1" = menu ]; then
+	exit
+fi
+
+global.bootm.image="/mnt/ata0/zImage"
+global.bootm.oftree="/mnt/ata0/oftree"
+global.bootm.initrd="/mnt/ata0/initramfs"
+global.linux.bootargs.dyn.root="root=/dev/sda2 rootwait video=-32 video=HDMI-A-1:d fsck.repair=yes"

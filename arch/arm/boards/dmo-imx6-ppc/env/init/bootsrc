@@ -7,4 +7,4 @@ if [ -n "$nv.boot.default" ]; then
 	exit
 fi
 
-global.boot.default="mmc3 mmc2"
+global.boot.default="mmc3 mmc2 ata0"
