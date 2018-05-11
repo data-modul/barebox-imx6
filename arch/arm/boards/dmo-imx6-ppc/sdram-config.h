@@ -11,17 +11,18 @@
 #define DENSITY_8		0x00000003
 #define DENSITY_SHIFT	17
 
-#define MASK_BUSWIDTH	0x00100000	/* ToDo: final adaption after redsign is finished */
+#define MASK_BUSWIDTH	0x00000004
 #define BUSWIDTH		0x00000004
-#define BUSWIDTH_SHIFT	18	/* ToDo: final adaption after redsign is finished */
+#define BUSWIDTH_SHIFT	0
 
 #define MASK_HW_ID			0x0014FC00	/* HWID[7:0] */
 #define MASK_HW_PCB_REV		0x00141000	/* HWID[7:5] */
 #define MASK_HW_PCB_ASS		0x0000EC00	/* HWID[4:0] */
 
-#define IOBASE_HW_ID		0x0209C000
-#define IOBASE_DENSITY		0x020A4000
-#define IOBASE_BUSWIDTH		0x020A4000	/* ToDo: final adaption after redsign is finished */
+#define IOBASE_IOMUX		0x020E0000	/* GPIO1 */
+#define IOBASE_HW_ID		0x0209C000	/* GPIO1 */
+#define IOBASE_DENSITY		0x020A4000	/* GPIO3 */
+#define IOBASE_BUSWIDTH		0x020AC000	/* GPIO5 */
 
 #define STACK_SDL		0x0091FFB8	/* according to IMXSDLRM.pdf: 8.4.1 Internal ROM /RAM memory map */
 #define STACK_DQ		0x0093FFB8	/* according to IMXDQRM.pdf: 8.4.1 Internal ROM /RAM memory map */
@@ -32,12 +33,12 @@ static struct mx6_ddr3_cfg density_8gbit = {
 	.density = 8,
 	.width = 16,
 	.banks = 8,
-	.rowaddr = 15,
+	.rowaddr = 16,
 	.coladdr = 10,
 	.pagesz = 2,
-	.trcd = 1375,
-	.trcmin = 4875,
-	.trasmin = 3500,
+	.trcd = 1100,
+	.trcmin = 3900,
+	.trasmin = 2800,
 };
 
 /* density 4GBit */
@@ -56,16 +57,16 @@ static struct mx6_ddr3_cfg density_4gbit = {
 
 /* density 2GBit */
 static struct mx6_ddr3_cfg density_2gbit = {
-	.mem_speed = 1333,
+	.mem_speed = 1866,
 	.density = 2,
 	.width = 16,
 	.banks = 8,
 	.rowaddr = 14,
 	.coladdr = 10,
 	.pagesz = 2,
-	.trcd = 1350,
-	.trcmin = 4950,
-	.trasmin = 3600,
+	.trcd = 1391,
+	.trcmin = 4791,
+	.trasmin = 3400,
 };
 
 /* DDR3-2GB (4x4Gbit  (256x16Mbit), 12021864) */
@@ -120,7 +121,7 @@ static struct mx6_mmdc_calibration mx6_1g_32b_mmdc_calib = {
 	.p0_mpwrdlctl = 0x3A363432,
 };
 
-/* DDR3-512MB (2x2Gbit (128x16Mbit), 12033818) */
+/* DDR3-512MB (2x2Gbit (128x16Mbit), 12033818) ToDo: final adaption after redsign is finished */
 static struct mx6_mmdc_calibration mx6_512m_32b_mmdc_calib = {
 	.p0_mpwldectrl0 = 0x0040003c,
 	.p0_mpwldectrl1 = 0x0032003e,

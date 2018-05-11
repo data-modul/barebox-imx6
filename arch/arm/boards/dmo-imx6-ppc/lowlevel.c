@@ -339,6 +339,7 @@ static void setup_uart(void)
 
 static uint32_t get_sdram_config(void)
 {
+	void __iomem *iobase_iomux = (void *)IOBASE_IOMUX;
 	void __iomem *iobase_density = (void *)IOBASE_DENSITY;
 	void __iomem *iobase_buswidth = (void *)IOBASE_BUSWIDTH;
 
@@ -350,6 +351,15 @@ static uint32_t get_sdram_config(void)
 	pr_info("get_sdram_config: iobase_density                 = 0x%08X\n", (unsigned int)iobase_density + 0x0);
 	pr_info("get_sdram_config: read iobase_density + 0x4      = 0x%08X\n", readl(iobase_density + 0x4));
 	pr_info("get_sdram_config: read iobase_density + 0x0      = 0x%08X\n", readl(iobase_density + 0x0));
+
+	writel(0x00000005, iobase_iomux + 0x134);	/* ALT5 = GPIO5_IO02 */
+	pr_info("get_sdram_config: iobase_iomux                   = 0x%08X\n", (unsigned int)iobase_iomux + 0x0);
+	pr_info("get_sdram_config: read iobase_iomux + 0x134      = 0x%08X\n", readl(iobase_iomux + 0x4));
+
+
+	pr_info("get_sdram_config: iobase_buswidth                = 0x%08X\n", (unsigned int)iobase_buswidth + 0x0);
+	pr_info("get_sdram_config: read iobase_buswidth + 0x4     = 0x%08X\n", readl(iobase_buswidth + 0x4));
+	pr_info("get_sdram_config: read iobase_buswidth + 0x0     = 0x%08X\n", readl(iobase_buswidth + 0x0));
 
 	/* read density of sdram devices and shift to bit 1 0*/
 	val = ((readl(iobase_density + 0x0) & MASK_DENSITY) >> DENSITY_SHIFT);
