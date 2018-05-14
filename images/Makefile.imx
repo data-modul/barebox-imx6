@@ -131,8 +131,8 @@ image-$(CONFIG_MACH_REALQ7) += barebox-datamodul-edm-qmx6.img
 
 pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_imx6_dmo_ppc
 CFG_start_imx6_dmo_ppc.imx-sram-img = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6-ppc.imxcfg
-FILE_barebox-imx6-dmo-ppc.img = start_imx6_dmo_ppc.imx-sram-img
-image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-imx6-dmo-ppc.img
+FILE_barebox-dmo-ppc.img = start_imx6_dmo_ppc.imx-sram-img
+image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-dmo-ppc.img
 
 pblx-$(CONFIG_MACH_GUF_SANTARO) += start_imx6q_guf_santaro
 CFG_start_imx6q_guf_santaro.pblx.imximg = $(board)/guf-santaro/flash-header.imxcfg
