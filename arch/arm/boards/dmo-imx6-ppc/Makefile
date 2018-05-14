@@ -1,8 +1,3 @@
-obj-y += board.o
-obj-y += flash-header-dmo-imx6dl-ppc.dcd.o \
-	 flash-header-dmo-imx6q-ppc.dcd.o
-extra-y += flash-header-dmo-imx6dl-ppc.dcd.S \
-	   flash-header-dmo-imx6q-ppc.dcd.S
-extra-y += flash-header-dmo-imx6dl-ppc.dcd \
-	   flash-header-dmo-imx6q-ppc.dcd
+obj-y += board.o flash-header-dmo-imx6-ppc.dcd.o
+extra-y += flash-header-dmo-imx6-ppc.dcd.S flash-header-dmo-imx6-ppc.dcd
 lwl-y += lowlevel.o

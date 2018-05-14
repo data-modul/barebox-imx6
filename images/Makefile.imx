@@ -129,15 +129,10 @@ CFG_start_imx6_realq7.pblx.imximg = $(board)/datamodul-edm-qmx6/flash-header.imx
 FILE_barebox-datamodul-edm-qmx6.img = start_imx6_realq7.pblx.imximg
 image-$(CONFIG_MACH_REALQ7) += barebox-datamodul-edm-qmx6.img
 
-pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_imx6dl_dmo_ppc
-CFG_start_imx6dl_dmo_ppc.pblx.imximg = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6dl-ppc.imxcfg
-FILE_barebox-imx6dl-dmo-ppc.img = start_imx6dl_dmo_ppc.pblx.imximg
-image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-imx6dl-dmo-ppc.img
-
-pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_imx6q_dmo_ppc
-CFG_start_imx6q_dmo_ppc.pblx.imximg = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6q-ppc.imxcfg
-FILE_barebox-imx6q-dmo-ppc.img = start_imx6q_dmo_ppc.pblx.imximg
-image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-imx6q-dmo-ppc.img
+pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_imx6_dmo_ppc
+CFG_start_imx6_dmo_ppc.imx-sram-img = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6-ppc.imxcfg
+FILE_barebox-imx6-dmo-ppc.img = start_imx6_dmo_ppc.imx-sram-img
+image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-imx6-dmo-ppc.img
 
 pblx-$(CONFIG_MACH_GUF_SANTARO) += start_imx6q_guf_santaro
 CFG_start_imx6q_guf_santaro.pblx.imximg = $(board)/guf-santaro/flash-header.imxcfg
