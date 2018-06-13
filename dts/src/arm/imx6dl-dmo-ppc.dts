@@ -16,10 +16,6 @@
 #include "imx6qdl-dmo-ppc.dtsi"
 
 / {
-	model = "Data Modul AG eDM-SBC-iMX6-PPC-DL/S-1G";
+	model = "Data Modul AG eDM-SBC-iMX6-PPC-DL/S";
 	compatible = "dmo,imx6dl-ppc", "fsl,imx6dl";
-
-	memory {
-		reg = <0x10000000 0x40000000>;
-	};
 };
