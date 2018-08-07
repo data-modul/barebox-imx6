@@ -23,6 +23,8 @@
 #include <mach/esdctl.h>
 #include <serial/imx-uart.h>
 #include <gpio.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "sdram-config.h"
 
@@ -156,6 +158,7 @@ struct mx6sdl_iomux_grp_regs mx6sdl_grp_ioregs = {
  * 				bit2 => buswidth:	1 = 32bit (resistor unmounted)
  * 									0 = 64bit (resistor mounted)
  */
+
 static unsigned long dmo_ppc_dram_init(uint32_t sdram_cfg)
 {
 	int cpu_type = __imx6_cpu_type();
@@ -163,7 +166,16 @@ static unsigned long dmo_ppc_dram_init(uint32_t sdram_cfg)
 	unsigned long pcb_rev = (readl(iobase_hwid + 0x0) & MASK_HW_PCB_REV);
 	unsigned long memsize;
 
-	pr_info("dmo_ppc_dram_init: pcb_rev   = 0x%08X\n", (unsigned int)pcb_rev);
+	pr_info("dmo_ppc_dram_init: pcb_rev   = 0x%08X\n\n", (unsigned int)pcb_rev);
+
+	pr_info("dmo_ppc_dram_init: cpu types available:\n");
+	pr_info("dmo_ppc_dram_init: IMX6_CPUTYPE_IMX6SL	= 0x160\n");
+	pr_info("dmo_ppc_dram_init: IMX6_CPUTYPE_IMX6S	= 0x161\n");
+	pr_info("dmo_ppc_dram_init: IMX6_CPUTYPE_IMX6DL	= 0x261\n");
+	pr_info("dmo_ppc_dram_init: IMX6_CPUTYPE_IMX6SX	= 0x462\n");
+	pr_info("dmo_ppc_dram_init: IMX6_CPUTYPE_IMX6D	= 0x263\n");
+	pr_info("dmo_ppc_dram_init: IMX6_CPUTYPE_IMX6Q	= 0x463\n");
+	pr_info("dmo_ppc_dram_init: IMX6_CPUTYPE_IMX6UL	= 0x164\n\n");
 
 	switch (cpu_type) {
 	case IMX6_CPUTYPE_IMX6S:
@@ -177,14 +189,14 @@ static unsigned long dmo_ppc_dram_init(uint32_t sdram_cfg)
 		case DENSITY_2:
 			if (sdram_cfg & BUSWIDTH) {
 				/* 32bit */
-				pr_info("DENSITY_2; 32bit; CPU = iMX6S/DL\n");
+				pr_info("DENSITY_2; 32bit; CPU = 0x%X\n", cpu_type);
 				mx6sdl_dram_iocfg(32, &mx6sdl_ddr_ioregs, &mx6sdl_grp_ioregs);
 				mx6_dram_cfg(&mem_512mb_32bit, &mx6_512m_32b_mmdc_calib, &density_2gbit);
 				memsize = SZ_512M;
 			}
 			else {
 				/* 64bit */
-				pr_info("DENSITY_2; 64bit; CPU = iMX6S/DL\n");
+				pr_info("DENSITY_2; 64bit; CPU = 0x%X\n", cpu_type);
 				mx6sdl_dram_iocfg(64, &mx6sdl_ddr_ioregs, &mx6sdl_grp_ioregs);
 				mx6_dram_cfg(&mem_1gb_64bit, &mx6_1g_64b_mmdc_calib, &density_2gbit);
 				memsize = SZ_1G;
@@ -193,14 +205,14 @@ static unsigned long dmo_ppc_dram_init(uint32_t sdram_cfg)
 		case DENSITY_4:
 			if (sdram_cfg & BUSWIDTH) {
 				/* 32bit */
-				pr_info("DENSITY_4; 32bit; CPU = iMX6S/DL\n");
+				pr_info("DENSITY_4; 32bit; CPU = 0x%X\n", cpu_type);
 				mx6sdl_dram_iocfg(32, &mx6sdl_ddr_ioregs, &mx6sdl_grp_ioregs);
 				mx6_dram_cfg(&mem_1gb_32bit, &mx6_1g_32b_mmdc_calib, &density_4gbit);
 				memsize = SZ_1G;
 			}
 			else {
 				/* 64bit */
-				pr_info("DENSITY_4; 64bit; CPU = iMX6S/DL\n");
+				pr_info("DENSITY_4; 64bit; CPU = 0x%X\n", cpu_type);
 				mx6sdl_dram_iocfg(64, &mx6sdl_ddr_ioregs, &mx6sdl_grp_ioregs);
 				mx6_dram_cfg(&mem_2gb_64bit, &mx6_2g_64b_mmdc_calib, &density_4gbit);
 				memsize = SZ_2G;
@@ -209,7 +221,7 @@ static unsigned long dmo_ppc_dram_init(uint32_t sdram_cfg)
 		case DENSITY_8:
 			if (sdram_cfg & BUSWIDTH) {
 				/* 32bit */
-				pr_info("DENSITY_8; 32bit; CPU = iMX6S/DL\n");
+				pr_info("DENSITY_8; 32bit; CPU = 0x%X\n", cpu_type);
 				mx6sdl_dram_iocfg(32, &mx6sdl_ddr_ioregs, &mx6sdl_grp_ioregs);
 				mx6_dram_cfg(&mem_2gb_32bit, &mx6_2g_32b_mmdc_calib, &density_8gbit);
 				memsize = SZ_2G;
@@ -226,7 +238,7 @@ static unsigned long dmo_ppc_dram_init(uint32_t sdram_cfg)
 	case IMX6_CPUTYPE_IMX6D:
 	case IMX6_CPUTYPE_IMX6Q:
 
-		/* patch for old boards:
+		/* patch for old boards (Rev900):
 		 * PCB-Rev 1 has no BUSWIDTH resistor and there is only one
 		 * iMX6Q-variant with 64bit buswidth
 		 * so we simply clear buswidth bit
@@ -243,14 +255,14 @@ static unsigned long dmo_ppc_dram_init(uint32_t sdram_cfg)
 		case DENSITY_2:
 			if (sdram_cfg & BUSWIDTH) {
 				/* 32bit */
-				pr_info("iMX6DQ; DENSITY_2; 32bit; CPU = iMX6D/Q\n");
+				pr_info("DENSITY_2; 32bit; CPU = 0x%X\n", cpu_type);
 				mx6dq_dram_iocfg(32, &mx6dq_ddr_ioregs, &mx6dq_grp_ioregs);
 				mx6_dram_cfg(&mem_512mb_32bit, &mx6_512m_32b_mmdc_calib, &density_2gbit);
 				memsize = SZ_512M;
 			}
 			else {
 				/* 64bit */
-				pr_info("DENSITY_2; 64bit; CPU = iMX6D/Q\n");
+				pr_info("DENSITY_2; 64bit; CPU = 0x%X\n", cpu_type);
 				mx6dq_dram_iocfg(64, &mx6dq_ddr_ioregs, &mx6dq_grp_ioregs);
 				mx6_dram_cfg(&mem_1gb_64bit, &mx6_1g_64b_mmdc_calib, &density_2gbit);
 				memsize = SZ_1G;
@@ -259,14 +271,14 @@ static unsigned long dmo_ppc_dram_init(uint32_t sdram_cfg)
 		case DENSITY_4:
 			if (sdram_cfg & BUSWIDTH) {
 				/* 32bit */
-				pr_info("DENSITY_4; 32bit; CPU = iMX6D/Q\n");
+				pr_info("DENSITY_4; 32bit; CPU = 0x%X\n", cpu_type);
 				mx6dq_dram_iocfg(32, &mx6dq_ddr_ioregs, &mx6dq_grp_ioregs);
 				mx6_dram_cfg(&mem_1gb_32bit, &mx6_1g_32b_mmdc_calib, &density_4gbit);
 				memsize = SZ_1G;
 			}
 			else {
 				/* 64bit */
-				pr_info("DENSITY_4; 64bit; CPU = iMX6D/Q\n");
+				pr_info("DENSITY_4; 64bit; CPU = 0x%X\n", cpu_type);
 				mx6dq_dram_iocfg(64, &mx6dq_ddr_ioregs, &mx6dq_grp_ioregs);
 				mx6_dram_cfg(&mem_2gb_64bit, &mx6_2g_64b_mmdc_calib, &density_4gbit);
 				memsize = SZ_2G;
@@ -275,7 +287,7 @@ static unsigned long dmo_ppc_dram_init(uint32_t sdram_cfg)
 		case DENSITY_8:
 			if (sdram_cfg & BUSWIDTH) {
 				/* 32bit */
-				pr_info("DENSITY_8; 32bit; CPU = iMX6D/Q\n");
+				pr_info("DENSITY_8; 32bit; CPU = 0x%X\n", cpu_type);
 				mx6dq_dram_iocfg(32, &mx6dq_ddr_ioregs, &mx6dq_grp_ioregs);
 				mx6_dram_cfg(&mem_2gb_32bit, &mx6_2g_32b_mmdc_calib, &density_8gbit);
 				memsize = SZ_2G;
@@ -337,7 +349,7 @@ static void setup_uart(void)
  * get_sdram_config reads sdram configuration from board via gpios
  */
 
-static uint32_t get_sdram_config(void)
+static uint32_t get_sdram_config(int cpu_type)
 {
 	void __iomem *iobase_iomux = (void *)IOBASE_IOMUX;
 	void __iomem *iobase_density = (void *)IOBASE_DENSITY;
@@ -348,17 +360,34 @@ static uint32_t get_sdram_config(void)
 	__udelay(1000);
 
 	pr_info("\n");
+
+	pr_info("get_sdram_config: iobase_iomux                   = 0x%08X\n", (unsigned int)iobase_iomux + 0x0);
+	switch (cpu_type) {
+	case IMX6_CPUTYPE_IMX6S:
+	case IMX6_CPUTYPE_IMX6DL:
+		writel(0x00000005, iobase_iomux + 0x134);	/* Pad EIM_A25: ALT5 = GPIO5_IO02 => Buswidth (DRAM_64_32) */
+		pr_info("get_sdram_config: read iobase_iomux + 0x134      = 0x%08X\n", readl(iobase_iomux + 0x134));
+		writel(0x00000005, iobase_iomux + 0x148);	/* Pad EIM_D17:  ALT5 = GPIO3_IO17 => Density (DRAM_ID1) */
+		pr_info("get_sdram_config: read iobase_iomux + 0x148      = 0x%08X\n", readl(iobase_iomux + 0x148));
+		writel(0x00000005, iobase_iomux + 0x14C);	/* Pad EIM_D18:  ALT5 = GPIO3_IO18 => Density (DRAM_ID0) */
+		pr_info("get_sdram_config: read iobase_iomux + 0x14C      = 0x%08X\n", readl(iobase_iomux + 0x14C));
+		break;
+	case IMX6_CPUTYPE_IMX6D:
+	case IMX6_CPUTYPE_IMX6Q:
+		writel(0x00000005, iobase_iomux + 0x88);	/* Pad EIM_A25: ALT5 = GPIO5_IO02 => Buswidth (DRAM_64_32) */
+		pr_info("get_sdram_config: read iobase_iomux + 0x88       = 0x%08X\n", readl(iobase_iomux + 0x88));
+		writel(0x00000005, iobase_iomux + 0x94);	/* Pad EIM_D17: ALT5 = GPIO3_IO17 => Density (DRAM_ID1) */
+		pr_info("get_sdram_config: read iobase_iomux + 0x94       = 0x%08X\n", readl(iobase_iomux + 0x94));
+		writel(0x00000005, iobase_iomux + 0x98);	/* Pad EIM_D18:  ALT5 = GPIO3_IO18 => Density (DRAM_ID0) */
+		pr_info("get_sdram_config: read iobase_iomux + 0x98       = 0x%08X\n", readl(iobase_iomux + 0x98));
+		break;
+	default:
+		hang();
+	}
 	pr_info("get_sdram_config: iobase_density                 = 0x%08X\n", (unsigned int)iobase_density + 0x0);
-	pr_info("get_sdram_config: read iobase_density + 0x4      = 0x%08X\n", readl(iobase_density + 0x4));
 	pr_info("get_sdram_config: read iobase_density + 0x0      = 0x%08X\n", readl(iobase_density + 0x0));
 
-	writel(0x00000005, iobase_iomux + 0x134);	/* ALT5 = GPIO5_IO02 */
-	pr_info("get_sdram_config: iobase_iomux                   = 0x%08X\n", (unsigned int)iobase_iomux + 0x0);
-	pr_info("get_sdram_config: read iobase_iomux + 0x134      = 0x%08X\n", readl(iobase_iomux + 0x4));
-
-
 	pr_info("get_sdram_config: iobase_buswidth                = 0x%08X\n", (unsigned int)iobase_buswidth + 0x0);
-	pr_info("get_sdram_config: read iobase_buswidth + 0x4     = 0x%08X\n", readl(iobase_buswidth + 0x4));
 	pr_info("get_sdram_config: read iobase_buswidth + 0x0     = 0x%08X\n", readl(iobase_buswidth + 0x0));
 
 	/* read density of sdram devices and shift to bit 1 0*/
@@ -374,7 +403,7 @@ static uint32_t get_sdram_config(void)
 	return val;
 }
 
-static void dmo_ppc_init(void)
+static void dmo_ppc_init(int cpu_type)
 {
 	unsigned long sdram_size;
 	uint32_t sdram_cfg;
@@ -384,7 +413,7 @@ static void dmo_ppc_init(void)
 
 	__udelay(1000);
 
-	sdram_cfg = get_sdram_config();
+	sdram_cfg = get_sdram_config(cpu_type);
 
 	sdram_size = dmo_ppc_dram_init(sdram_cfg);
 
@@ -405,7 +434,7 @@ static noinline void dmo_ppc_start(void)
 	int cpu_type = __imx6_cpu_type();
 	void *dtb;
 
-	dmo_ppc_init();
+	dmo_ppc_init(cpu_type);
 
 	switch (cpu_type) {
 	case IMX6_CPUTYPE_IMX6S:
@@ -440,7 +469,8 @@ ENTRY_FUNCTION(start_imx6_dmo_ppc, r0, r1, r2)
 	barrier();
 
 	setup_uart();
-	pr_info("\n\nstart_imx6_dmo_ppc: stack before re-init = 0x%08X\n", (unsigned int)get_sp());
+
+	pr_info("\nstart_imx6_dmo_ppc: stack before re-init = 0x%08X\n", (unsigned int)get_sp());
 
 	/* re-init stack according to cpu-type after relocation */
 	switch (cpu_type) {
