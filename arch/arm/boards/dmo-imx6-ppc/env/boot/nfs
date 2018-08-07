@@ -12,9 +12,15 @@ fi
 nfsroot="/home/${global.user}/nfsroot/${global.hostname}"
 bootargs-ip
 
+if [ "$nv.display.type" = "LVDS" ]; then
+	localvideo="HDMI-A-1:d"
+else
+	localvideo="LVDS-1:d"
+fi
+
 initramfs="${path}/${global.user}-initramfs-${global.hostname}"
 if [ -f "${initramfs}" ]; then
 	global.bootm.initrd="initramfs"
 else
-	global.linux.bootargs.dyn.root="root=/dev/nfs nfsroot=$nfsroot,v3,tcp video=-32 video=HDMI-A-1:d"
+	global.linux.bootargs.dyn.root="root=/dev/nfs nfsroot=$nfsroot,v3,tcp video=-32 video=$localvideo"
 fi

@@ -4,4 +4,10 @@ global.bootm.image="/mnt/mmc2/zImage"
 global.bootm.oftree="/mnt/mmc2/oftree"
 global.bootm.initrd="/mnt/mmc2/initramfs"
 
-global.linux.bootargs.dyn.root="root=/dev/mmcblk1p2 rootwait video=-32 video=HDMI-A-1:d fsck.repair=yes"
+if [ "$nv.display.type" = "LVDS" ]; then
+	localvideo="HDMI-A-1:d"
+else
+	localvideo="LVDS-1:d"
+fi
+
+global.linux.bootargs.dyn.root="root=/dev/mmcblk1p2 rootwait video=-32 video=$localvideo fsck.repair=yes"
