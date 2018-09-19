@@ -36,14 +36,16 @@
 #include <i2c/i2c.h>
 #include <libfile.h>
 #include <globalvar.h>
+#include <unistd.h>
 
 #define BB_DEFAULT_DEV	"m25p0"
 #define OS_DEFAULT_DEV	"mmc3"
 #define ENV_BOOT	"/env/boot"
-#define USB_DISK_DEV	"/dev/disk0.0"
-#define _USB_DISK_DEV_0	"/dev/disk0"
+#define USB_DISK	"disk"
 #define USB_MNT		"/mnt/disk"
 #define INIFILE		USB_MNT"/inifile"
+#define TOUCHFILE	USB_MNT"/maxtouch.txt"
+#define DISPLAYID	"FW_Rev"
 #define SWU_CONF_VER	"0.2"
 #define BUFSIZE		1024
 #define NM_LEN		128
@@ -513,23 +515,83 @@ static void swu_init_logfile(void)
 static int swu_prepare_update(void)
 {
 	int ret = 0;
+	DIR *dir;
+	struct dirent *d;
+	struct string_list sl;
+	struct string_list *entry;
+	char* line;
+	size_t size;
+	char* substr;
+	char display[9];
+	struct stat buf;
 
 	usb_rescan();
 
-	pr_info("mounting usb media...\n");
+	string_list_init(&sl);
+	dir = opendir(DEV);
+	if (!dir)
+		return -errno;
+	while((d = readdir(dir)))
+	{
+		// add /dev/disk* and /dev/disk*.0 into the list.
+		if(!strncmp(USB_DISK, d->d_name, 4)) {
+			if(strstr(d->d_name, "."))
+			{
+				if(strstr(d->d_name, ".0"))
+					string_list_add_sorted(&sl, d->d_name);
+			}
+			else
+			{
+				string_list_add_sorted(&sl, d->d_name);
+			}
+		}
+	}
+	closedir(dir);
 
+	pr_info("mounting usb media...\n");
 	make_directory(USB_MNT);
 
-	ret = mount(USB_DISK_DEV, NULL, USB_MNT, "");
-	if (ret) {
-		pr_info("mount %s failed. trying %s...\n",
-			 USB_DISK_DEV,
-			 _USB_DISK_DEV_0);
-		ret = mount(_USB_DISK_DEV_0, NULL, USB_MNT, "");
-	}
-	swu_init_logfile();
+	globalvar_add_simple("display.size",NULL);
+	string_list_for_each_entry(entry, &sl) {
+		ret = mount(entry->str, NULL, USB_MNT, "");
+		if (ret)
+			pr_info("mount %s failed....\n",entry->str);
+		else {
+			pr_info("mount %s success...\n", entry->str);
 
-	return ret;
+			/* if inifile found, countinue with swu*/
+			if ( stat ( INIFILE, &buf ) == 0) {
+				swu_init_logfile();
+				return ret;
+			}
+
+			/* if no inifile found, detect display size from touch*/
+			line = read_file(TOUCHFILE, &size);
+			if (line)
+			{
+				substr = strstr(line, DISPLAYID);
+				if(substr)
+				{
+					/* FW_Rev  12017029__001
+					 * After detecting FW_Rev, from index=6 
+					 * search for string starts after space, with
+					 * size 8*/
+					substr+=6;
+					while(*substr != '\n')
+					{
+						if(*substr != ' ') {
+							snprintf(display, sizeof(display), "%s", substr);
+							globalvar_add_simple("display.size",display);
+							break;
+						}
+						substr++;
+					}
+				}
+			}
+			umount(USB_MNT);
+		}
+	}
+	return -EINVAL;
 }
 
 /**

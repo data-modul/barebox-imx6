@@ -2115,6 +2115,12 @@ config CMD_SPD_DECODE
 	help
 	  decode spd eeprom
 
+config CMD_DTS_DETECT
+	tristate
+	prompt "dts_detect"
+	help
+	  dts_detect detects appropriate device tree regarding display
+
 config CMD_SWU
 	tristate
 	depends on USB_HOST && USB_IMX_CHIPIDEA && USB_EHCI && USB_STORAGE
