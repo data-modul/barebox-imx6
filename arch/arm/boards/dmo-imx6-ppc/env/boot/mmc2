@@ -1,7 +1,18 @@
 #!/bin/sh
 
+if [ "$global.display.size" = "" ]; then
+	global.bootm.oftree="/mnt/mmc2/oftree"
+else
+	dts_detect /mnt/mmc2/ $global.display.size
+
+	if [ "$global.detected.dts" != "" ]; then
+		global.bootm.oftree="/mnt/mmc2/"$global.detected.dts
+	else
+		global.bootm.oftree="/mnt/mmc2/oftree"
+	fi
+fi
+
 global.bootm.image="/mnt/mmc2/zImage"
-global.bootm.oftree="/mnt/mmc2/oftree"
 global.bootm.initrd="/mnt/mmc2/initramfs"
 
 if [ "$nv.display.type" = "LVDS" ]; then
