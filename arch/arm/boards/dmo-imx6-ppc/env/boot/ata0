@@ -4,8 +4,19 @@ if [ "$1" = menu ]; then
 	exit
 fi
 
+if [ "$global.display.size" = "" ]; then
+	global.bootm.oftree="/mnt/ata0/oftree"
+else
+	dts_detect /mnt/ata0/ $global.display.size
+
+	if [ "$global.detected.dts" != "" ]; then
+		global.bootm.oftree="/mnt/ata0/"$global.detected.dts
+	else
+		global.bootm.oftree="/mnt/ata0/oftree"
+	fi
+fi
+
 global.bootm.image="/mnt/ata0/zImage"
-global.bootm.oftree="/mnt/ata0/oftree"
 global.bootm.initrd="/mnt/ata0/initramfs"
 
 if [ "$nv.display.type" = "LVDS" ]; then
