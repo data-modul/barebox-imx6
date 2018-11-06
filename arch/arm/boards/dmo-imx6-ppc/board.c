@@ -122,6 +122,8 @@ static int DMO_IMX6_PPC_device_init(void)
 		of_machine_is_compatible("dmo,imx6q-ppc")))
 		return 0;
 
+	pr_info("DMO_IMX6_PPC_device_init\n");
+
 	/* ensure that we are in usb host mode */
 	gpio_direction_output(DMO_IMX6_PPC_PIN_USB_OTG_PWR_EN, 1);
 	gpio_direction_output(DMO_IMX6_PPC_PIN_USB_HUB_RST, 1);

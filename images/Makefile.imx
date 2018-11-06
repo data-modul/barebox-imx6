@@ -129,10 +129,34 @@ CFG_start_imx6_realq7.pblx.imximg = $(board)/datamodul-edm-qmx6/flash-header.imx
 FILE_barebox-datamodul-edm-qmx6.img = start_imx6_realq7.pblx.imximg
 image-$(CONFIG_MACH_REALQ7) += barebox-datamodul-edm-qmx6.img
 
-pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_imx6_dmo_ppc
-CFG_start_imx6_dmo_ppc.imx-sram-img = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6-ppc.imxcfg
-FILE_barebox-dmo-ppc.img = start_imx6_dmo_ppc.imx-sram-img
+
+
+pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_dmo_imx6_ppc
+CFG_start_dmo_imx6_ppc.imx-sram-img = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6-ppc.imxcfg
+FILE_barebox-dmo-ppc.img = start_dmo_imx6_ppc.imx-sram-img
 image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-dmo-ppc.img
+
+pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_dmo_imx6dl_ppc_4G_32bit
+CFG_start_dmo_imx6dl_ppc_4G_32bit.pblx.imximg = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6dl-ppc_4G_32bit.imxcfg
+FILE_barebox-imx6dl-dmo-ppc_4G_32bit.img = start_dmo_imx6dl_ppc_4G_32bit.pblx.imximg
+image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-imx6dl-dmo-ppc_4G_32bit.img
+
+pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_dmo_imx6q_ppc_4G_32bit
+CFG_start_dmo_imx6q_ppc_4G_32bit.pblx.imximg = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6q-ppc_4G_32bit.imxcfg
+FILE_barebox-imx6q-dmo-ppc_4G_32bit.img = start_dmo_imx6q_ppc_4G_32bit.pblx.imximg
+image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-imx6q-dmo-ppc_4G_32bit.img
+
+pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_dmo_imx6q_ppc_4G_64bit
+CFG_start_dmo_imx6q_ppc_4G_64bit.pblx.imximg = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6q-ppc_4G_64bit.imxcfg
+FILE_barebox-imx6q-dmo-ppc_4G_64bit.img = start_dmo_imx6q_ppc_4G_64bit.pblx.imximg
+image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-imx6q-dmo-ppc_4G_64bit.img
+
+pblx-$(CONFIG_MACH_DMO_IMX6_PPC) += start_imx6q_dmo_imx6q_ppc_2G_64bit
+CFG_start_imx6q_dmo_imx6q_ppc_2G_64bit.pblx.imximg = $(board)/dmo-imx6-ppc/flash-header-dmo-imx6q-ppc_2G_64bit.imxcfg
+FILE_barebox-imx6q-dmo-ppc_2G_64bit.img = start_imx6q_dmo_imx6q_ppc_2G_64bit.pblx.imximg
+image-$(CONFIG_MACH_DMO_IMX6_PPC) += barebox-imx6q-dmo-ppc_2G_64bit.img
+
+
 
 pblx-$(CONFIG_MACH_GUF_SANTARO) += start_imx6q_guf_santaro
 CFG_start_imx6q_guf_santaro.pblx.imximg = $(board)/guf-santaro/flash-header.imxcfg
