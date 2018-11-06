@@ -590,7 +590,7 @@ ENTRY_FUNCTION(start_imx6q_dmo_imx6q_ppc_2G_64bit, r0, r1, r2)
 
 	fdt = __dtb_imx6q_dmo_ppc_start - get_runtime_offset();
 
-	barebox_arm_entry(sdram, SZ_2G, fdt);
+	barebox_arm_entry(sdram, SZ_1G, fdt);
 }
 
 
