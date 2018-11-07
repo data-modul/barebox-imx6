@@ -15,6 +15,7 @@
 #include <mach/generic.h>
 #include <asm/barebox-arm-head.h>
 #include <asm/barebox-arm.h>
+#include <asm/cache.h>
 #include <mach/imx6-mmdc.h>
 #include <mach/imx6-ddr-regs.h>
 #include <mach/imx6.h>
@@ -407,8 +408,11 @@ static void dmo_ppc_init(int cpu_type)
 {
 	unsigned long sdram_size;
 	uint32_t sdram_cfg;
+	unsigned long pc = get_pc();
 
-	if (get_pc() > 0x10000000)
+	pr_info("\ndmo_ppc_init: pc = 0x%08lx\n", pc);
+
+	if (pc > 0x10000000)
 		return;
 
 	__udelay(1000);
@@ -436,6 +440,7 @@ static noinline void dmo_ppc_start(void)
 
 	dmo_ppc_init(cpu_type);
 
+	pr_info("Runnig from DRAM!\n");
 	switch (cpu_type) {
 	case IMX6_CPUTYPE_IMX6S:
 	case IMX6_CPUTYPE_IMX6DL:
@@ -457,7 +462,12 @@ static noinline void dmo_ppc_start(void)
  * enable CONFIG_PBL_CONSOLE in menuconfig
  */
 
-ENTRY_FUNCTION(start_imx6_dmo_ppc, r0, r1, r2)
+/*
+ * ENTRY_FUNCTION(start_dmo_imx6_ppc, r0, r1, r2)
+ * = entry function for dynamic DRAM detection
+ */
+
+ENTRY_FUNCTION(start_dmo_imx6_ppc, r0, r1, r2)
 {
 	int cpu_type = __imx6_cpu_type();
 	imx6_cpu_lowlevel_init();
@@ -470,7 +480,7 @@ ENTRY_FUNCTION(start_imx6_dmo_ppc, r0, r1, r2)
 
 	setup_uart();
 
-	pr_info("\nstart_imx6_dmo_ppc: stack before re-init = 0x%08X\n", (unsigned int)get_sp());
+	pr_info("\nstart_dmo_imx6_ppc: stack before re-init = 0x%08X\n", (unsigned int)get_sp());
 
 	/* re-init stack according to cpu-type after relocation */
 	switch (cpu_type) {
@@ -485,7 +495,102 @@ ENTRY_FUNCTION(start_imx6_dmo_ppc, r0, r1, r2)
 	default:
 		hang();
 	}
-	pr_info("start_imx6_dmo_ppc: stack after  re-init = 0x%08X\n", (unsigned int)get_sp());
+	pr_info("start_dmo_imx6_ppc: stack after  re-init = 0x%08X\n", (unsigned int)get_sp());
 
 	dmo_ppc_start();
 }
+
+
+/*
+ * The following ENTRY_FUNCTION(start_dmo_imx6x_..., r0, r1, r2)
+ * are the entry functions for the respective bareboy recovery
+ * images needed for loading via imx_usb loader
+ *
+ * Each recovery image needs its own entry function, therefore
+ * multiple functions are listed below.
+ *
+ * When there will be a new ppc variant with new DRAM configuration,
+ * new entry function has to be created and the MAKEFILES to be updated
+ *
+ * .../arch/arb/boards/dmo-imx6-ppc/Makefile
+ * .../images/Makefile.imx
+ *
+ * naming convention:
+ * start_dmo_imx6xx_ppc_density_buswidth
+ * xx		= dl (iMX6 solo/duallite); q (iMX6 dual/quad)
+ * density	= 2G; 4G
+ * buswidth	= 32bit; 64bit
+ *
+ * e.g.: start_dmo_imx6q_ppc_4G_64bit
+ *
+ * also valid for the flash-header-files,
+ * e.g.: flash-header-dmo-imx6q-ppc_4G_64bit.imxcfg
+ *
+ *
+ */
+
+ENTRY_FUNCTION(start_dmo_imx6dl_ppc_4G_32bit, r0, r1, r2)
+{
+	unsigned long sdram = 0x10000000;
+	void *fdt;
+
+	imx6_cpu_lowlevel_init();
+
+	arm_setup_stack(STACK_SDL - 8); /* according to IMXSDLRM.pdf: 8.4.1 Internal ROM /RAM memory map */
+
+	arm_early_mmu_cache_invalidate();
+
+	fdt = __dtb_imx6dl_dmo_ppc_start - get_runtime_offset();
+
+	barebox_arm_entry(sdram, SZ_1G, fdt);
+}
+
+ENTRY_FUNCTION(start_dmo_imx6q_ppc_4G_32bit, r0, r1, r2)
+{
+	unsigned long sdram = 0x10000000;
+	void *fdt;
+
+	imx6_cpu_lowlevel_init();
+
+	arm_setup_stack(STACK_DQ - 8); /* according to IMXDQRM.pdf: 8.4.1 Internal ROM /RAM memory map */
+
+	arm_early_mmu_cache_invalidate();
+
+	fdt = __dtb_imx6q_dmo_ppc_start - get_runtime_offset();
+
+	barebox_arm_entry(sdram, SZ_1G, fdt);
+}
+
+ENTRY_FUNCTION(start_dmo_imx6q_ppc_4G_64bit, r0, r1, r2)
+{
+	unsigned long sdram = 0x10000000;
+	void *fdt;
+
+	imx6_cpu_lowlevel_init();
+
+	arm_setup_stack(STACK_DQ - 8); /* according to IMXDQRM.pdf: 8.4.1 Internal ROM /RAM memory map */
+
+	arm_early_mmu_cache_invalidate();
+
+	fdt = __dtb_imx6q_dmo_ppc_start - get_runtime_offset();
+
+	barebox_arm_entry(sdram, SZ_2G, fdt);
+}
+
+ENTRY_FUNCTION(start_imx6q_dmo_imx6q_ppc_2G_64bit, r0, r1, r2)
+{
+	unsigned long sdram = 0x10000000;
+	void *fdt;
+
+	imx6_cpu_lowlevel_init();
+
+	arm_setup_stack(STACK_DQ - 8); /* according to IMXDQRM.pdf: 8.4.1 Internal ROM /RAM memory map */
+
+	arm_early_mmu_cache_invalidate();
+
+	fdt = __dtb_imx6q_dmo_ppc_start - get_runtime_offset();
+
+	barebox_arm_entry(sdram, SZ_1G, fdt);
+}
+
+
