@@ -725,6 +725,9 @@ static int swu_lvds_handler(struct bbu_handler *handler,
 	void *fdt;
 	size_t size;
 	char dtb[PATH_MAX];
+	DIR *dir;
+	struct dirent *d;
+	bool oftree_found = 0;
 
 	if (swu_check_lvds_param())
 		pr_err("ERROR: missing.\n");
@@ -739,6 +742,26 @@ static int swu_lvds_handler(struct bbu_handler *handler,
 	if (ret)
 		return -EPERM;
 
+	dir = opendir(SWU_MNT_PATH);
+	if (!dir)
+		return -errno;
+	while((d = readdir(dir)))
+	{
+		if(!strncmp(d->d_name, data->imagefile, sizeof(data->imagefile)))
+		{
+			oftree_found = 1;
+			break;
+		}
+	}
+	closedir(dir);
+	if(!oftree_found)
+		ret = swu_safe_copy(SWU_MNT_PATH"/user-oftree", SWU_MNT_PATH"/oftree", 0);
+	if(ret)
+	{
+		ret = -EIO;
+		goto finilize;
+	}
+
 	snprintf(dtb, sizeof(dtb)-1, SWU_MNT_PATH"/%s", data->imagefile);
 	fdt = read_file(dtb, &size);
 	if (fdt) {
@@ -752,6 +775,7 @@ static int swu_lvds_handler(struct bbu_handler *handler,
 	} else
 		ret = -EIO;
 
+finilize:
 	umount(SWU_MNT_PATH);
 	unlink_recursive("/tmp/swu", NULL);
 

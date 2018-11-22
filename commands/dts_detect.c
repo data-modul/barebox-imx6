@@ -29,6 +29,7 @@
 
 /* display 's version is specified in device tree filename with _12*/
 #define DISPLAYSTART	"_12"
+#define DISPLAYHDMI	"HDMI"
 
 static int do_dts_detect(int argc, char *argv[])
 {
@@ -56,7 +57,7 @@ static int do_dts_detect(int argc, char *argv[])
 		return -errno;
 	while((d = readdir(dir)))
 	{
-		if(strstr(d->d_name, DISPLAYSTART))
+		if((strstr(d->d_name, DISPLAYSTART))|| (strstr(d->d_name, DISPLAYHDMI)))
 			string_list_add_sorted(&sl, d->d_name);
 	}
 	closedir(dir);
