@@ -3,23 +3,25 @@
 global.bootm.image="/mnt/mmc2/zImage"
 global.bootm.initrd="/mnt/mmc2/initramfs"
 
-if [ "$nv.display.type" = "LVDS" ]; then
-	localvideo="HDMI-A-1:d"
-else
-	localvideo="LVDS-1:d"
-fi
-
 if [ "$global.display.size" = "" ]; then
-	global.bootm.oftree="/mnt/mmc2/oftree"
+	if [ -e "/mnt/mmc2/oftree" ]; then
+		global.bootm.oftree="/mnt/mmc2/oftree"
+	else
+		dts_detect /mnt/mmc2/ "HDMI"
+		if [ "$global.detected.dts" != "" ]; then
+			global.bootm.oftree="/mnt/mmc2/"$global.detected.dts
+		else
+			global.bootm.oftree="/mnt/mmc2/oftree"
+		fi
+	fi
 else
 	dts_detect /mnt/mmc2/ $global.display.size
 
 	if [ "$global.detected.dts" != "" ]; then
 		global.bootm.oftree="/mnt/mmc2/"$global.detected.dts
-		localvideo="HDMI-A-1:d"
 	else
 		global.bootm.oftree="/mnt/mmc2/oftree"
 	fi
 fi
 
-global.linux.bootargs.dyn.root="root=/dev/mmcblk1p2 rootwait video=-32 video=$localvideo fsck.repair=yes"
+global.linux.bootargs.dyn.root="root=/dev/mmcblk1p2 rootwait video=-32 fsck.repair=yes"
