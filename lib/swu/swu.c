@@ -501,7 +501,6 @@ static int swu_file_handler(struct bbu_handler *handler,
 
 		ret = swu_safe_copy(data->imagefile, dst, verbose);
 
-		free(fn);
 		free(dst);
 		free(dst_old);
 	}
