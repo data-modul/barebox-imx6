@@ -485,19 +485,25 @@ static int swu_file_handler(struct bbu_handler *handler,
 
 	if (!ret) {
 		char *dst;
-		char *fn = (char *)data->imagefile;
-		dst = concat_path_file(SWU_MNT_PATH, basename(fn));
+		char *dst_old;
+		char *fn = (char *)data->image;
+
+		dst = concat_path_file(SWU_MNT_PATH, data->image);
+
+		strncat(fn, "-old", 4);
+		dst_old = concat_path_file(SWU_MNT_PATH, fn);
+
 		verbose = data->flags & BBU_FLAGS_VERBOSE;
+
+		ret = swu_safe_copy(dst, dst_old, verbose);
+		if(ret)
+			swu_log("Backup old image fails. Continue with updating\n");
+
 		ret = swu_safe_copy(data->imagefile, dst, verbose);
-		if (data->image) {
-			char *lnk;
-			lnk = concat_path_file(SWU_MNT_PATH, data->image);
-			ret = symlink(dst, lnk);
-			if (ret) /* FIXME: FAT workaround */
-				ret = swu_safe_copy(dst, lnk, 0);
-			free(lnk);
-		}
+
+		free(fn);
 		free(dst);
+		free(dst_old);
 	}
 
 	umount(SWU_MNT_PATH);
