@@ -27,7 +27,7 @@
 #define STACK_SDL		0x0091FFB8	/* according to IMXSDLRM.pdf: 8.4.1 Internal ROM /RAM memory map */
 #define STACK_DQ		0x0093FFB8	/* according to IMXDQRM.pdf: 8.4.1 Internal ROM /RAM memory map */
 
-/* density 8GBit: ToDo: final adaption after redsign is finished */
+/* density 8GBit: ToDo: final adaption after redesign is finished */
 static struct mx6_ddr3_cfg density_8gbit = {
 	.mem_speed = 1600,
 	.density = 8,
@@ -85,7 +85,7 @@ static struct mx6_mmdc_calibration mx6_2g_64b_mmdc_calib = {
 	.p1_mpwrdlctl = 0x462f453f,
 };
 
-/* DDR3-1GB (4x2Gbit (128x16Mbit), 12033818) ToDo: final adaption after redsign is finished */
+/* DDR3-1GB (4x2Gbit (128x16Mbit), 12033818) ToDo: final adaption after redesign is finished */
 static struct mx6_mmdc_calibration mx6_1g_64b_mmdc_calib = { 
 	.p0_mpwldectrl0 = 0x001f001f,
 	.p0_mpwldectrl1 = 0x001f001f,
@@ -101,7 +101,7 @@ static struct mx6_mmdc_calibration mx6_1g_64b_mmdc_calib = {
 	.p1_mpwrdlctl = 0x462f453f,
 };
 
-/*  DDR3-2GB (2x8Gbit (512x16 Mbit), 12033822) ToDo: final adaption after redsign is finished */
+/*  DDR3-2GB (2x8Gbit (512x16 Mbit), 12033822) ToDo: final adaption after redesign is finished */
 static struct mx6_mmdc_calibration mx6_2g_32b_mmdc_calib = {
 	.p0_mpwldectrl0 = 0x001f001f,
 	.p0_mpwldectrl1 = 0x001f001f,
@@ -121,14 +121,14 @@ static struct mx6_mmdc_calibration mx6_1g_32b_mmdc_calib = {
 	.p0_mpwrdlctl = 0x3A363432,
 };
 
-/* DDR3-512MB (2x2Gbit (128x16Mbit), 12033818) ToDo: final adaption after redsign is finished */
+/* DDR3-512MB (2x2Gbit (128x16Mbit), 12033818) */
 static struct mx6_mmdc_calibration mx6_512m_32b_mmdc_calib = {
-	.p0_mpwldectrl0 = 0x0040003c,
-	.p0_mpwldectrl1 = 0x0032003e,
-	.p0_mpdgctrl0 = 0x42350231,
-	.p0_mpdgctrl1 = 0x021a0218,
-	.p0_mprddlctl = 0x4b4b4e49,
-	.p0_mpwrdlctl = 0x3f3f3035,
+	.p0_mpwldectrl0 = 0x0044004D,
+	.p0_mpwldectrl1 = 0x0039003F,
+	.p0_mpdgctrl0 = 0x0240023C,
+	.p0_mpdgctrl1 = 0x0224022C,
+	.p0_mprddlctl = 0x42444646,
+	.p0_mpwrdlctl = 0x36382E34,
 };
 
 /* DDR 64bit 2GB */
@@ -163,7 +163,7 @@ static struct mx6_ddr_sysinfo mem_1gb_64bit = {
 	.sde_to_rst	= 0x10,
 };
 
-/* DDR 32bit 2GB ToDo: final adaption after redsign is finished */
+/* DDR 32bit 2GB ToDo: final adaption after redesign is finished */
 static struct mx6_ddr_sysinfo mem_2gb_32bit = {
 	.dsize		= 1,
 	.cs1_mirror	= 0,
