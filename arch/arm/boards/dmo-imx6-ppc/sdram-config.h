@@ -71,37 +71,37 @@ static struct mx6_ddr3_cfg density_2gbit = {
 
 /* DDR3-2GB (4x4Gbit  (256x16Mbit), 12021864) */
 static struct mx6_mmdc_calibration mx6_2g_64b_mmdc_calib = {
-	.p0_mpwldectrl0 = 0x001f001f,
-	.p0_mpwldectrl1 = 0x001f001f,
-	.p1_mpwldectrl0 = 0x001f001f,
-	.p1_mpwldectrl1 = 0x001f001f,
-	.p0_mpdgctrl0 = 0x4301030d,
-	.p0_mpdgctrl1 = 0x03020277,
-	.p1_mpdgctrl0 = 0x4300030a,
-	.p1_mpdgctrl1 = 0x02780248,
-	.p0_mprddlctl = 0x4536393b,
-	.p1_mprddlctl = 0x36353441,
-	.p0_mpwrdlctl = 0x41414743,
-	.p1_mpwrdlctl = 0x462f453f,
+	.p0_mpwldectrl0 = 0x00110011,
+	.p0_mpwldectrl1 = 0x001E000F,
+	.p1_mpwldectrl0 = 0x000B001F,
+	.p1_mpwldectrl1 = 0x00160018,
+	.p0_mpdgctrl0 = 0x031C0328,
+	.p0_mpdgctrl1 = 0x03180314,
+	.p1_mpdgctrl0 = 0x0324032C,
+	.p1_mpdgctrl1 = 0x0318026C,
+	.p0_mprddlctl = 0x3E34363A,
+	.p1_mprddlctl = 0x3C383240,
+	.p0_mpwrdlctl = 0x3C3A3E3E,
+	.p1_mpwrdlctl = 0x4A3A4E40,
 };
 
-/* DDR3-1GB (4x2Gbit (128x16Mbit), 12033818) ToDo: final adaption after redesign is finished */
+/* DDR3-1GB (4x2Gbit (128x16Mbit), 12033818) */
 static struct mx6_mmdc_calibration mx6_1g_64b_mmdc_calib = { 
-	.p0_mpwldectrl0 = 0x001f001f,
-	.p0_mpwldectrl1 = 0x001f001f,
-	.p1_mpwldectrl0 = 0x001f001f,
-	.p1_mpwldectrl1 = 0x001f001f,
-	.p0_mpdgctrl0 = 0x4301030d,
-	.p0_mpdgctrl1 = 0x03020277,
-	.p1_mpdgctrl0 = 0x4300030a,
-	.p1_mpdgctrl1 = 0x02780248,
-	.p0_mprddlctl = 0x4536393b,
-	.p1_mprddlctl = 0x36353441,
-	.p0_mpwrdlctl = 0x41414743,
-	.p1_mpwrdlctl = 0x462f453f,
+	.p0_mpwldectrl0 = 0x00110015,
+	.p0_mpwldectrl1 = 0x001B0015,
+	.p1_mpwldectrl0 = 0x000C0017,
+	.p1_mpwldectrl1 = 0x00090014,
+	.p0_mpdgctrl0 = 0x02380240,
+	.p0_mpdgctrl1 = 0x02300234,
+	.p1_mpdgctrl0 = 0x02380240,
+	.p1_mpdgctrl1 = 0x022C0214,
+	.p0_mprddlctl = 0x3E343438,
+	.p1_mprddlctl = 0x3A383640,
+	.p0_mpwrdlctl = 0x38363C3C,
+	.p1_mpwrdlctl = 0x46364440,
 };
 
-/*  DDR3-2GB (2x8Gbit (512x16 Mbit), 12033822) ToDo: final adaption after redesign is finished */
+/*  DDR3-2GB (2x8Gbit (512x16 Mbit), 12033822) ToDo: final adaption currently not intended; kept here as placeholder */
 static struct mx6_mmdc_calibration mx6_2g_32b_mmdc_calib = {
 	.p0_mpwldectrl0 = 0x001f001f,
 	.p0_mpwldectrl1 = 0x001f001f,
@@ -113,9 +113,9 @@ static struct mx6_mmdc_calibration mx6_2g_32b_mmdc_calib = {
 
 /* DDR3-1GB (2x4Gbit  (256x16Mbit), 12021864) */
 static struct mx6_mmdc_calibration mx6_1g_32b_mmdc_calib = {
-	.p0_mpwldectrl0 = 0x001f001f,
-	.p0_mpwldectrl1 = 0x001f001f,
-	.p0_mpdgctrl0 = 0x021b083c,
+	.p0_mpwldectrl0 = 0x00500059,
+	.p0_mpwldectrl1 = 0x00440049,
+	.p0_mpdgctrl0 = 0x024C0248,
 	.p0_mpdgctrl1 = 0x02380238,
 	.p0_mprddlctl = 0x3E444242,
 	.p0_mpwrdlctl = 0x3A363432,
@@ -163,7 +163,7 @@ static struct mx6_ddr_sysinfo mem_1gb_64bit = {
 	.sde_to_rst	= 0x10,
 };
 
-/* DDR 32bit 2GB ToDo: final adaption after redesign is finished */
+/* DDR 32bit 2GB ToDo: final adaption currently not intended; kept here as placeholder */
 static struct mx6_ddr_sysinfo mem_2gb_32bit = {
 	.dsize		= 1,
 	.cs1_mirror	= 0,
