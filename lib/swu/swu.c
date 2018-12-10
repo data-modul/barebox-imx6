@@ -366,7 +366,7 @@ static int swu_blk_dev_handler(struct bbu_handler *handler,
 	int ret, verbose;
 
 	if (swu_check_limits(data->imagefile, data->devicefile)) {
-		swu_log("ERROR: partition to small.\n");
+		swu_log("ERROR: partition too small or file does not exist\n");
 		return -EINVAL;
 	}
 
